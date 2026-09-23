@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HealCart - Products</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+        }
+
+        header {
+            background: #2563eb;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            width: 80%;
+            margin: 30px auto;
+        }
+
+        .search-area {
+            margin-bottom: 25px;
+        }
+
+        #search-box {
+            padding: 10px;
+            width: 300px;
+        }
+
+        #search-btn {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .product {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .product button {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        #cart-message {
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #logout-btn {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2 id="store-title">HealCart</h2>
+
+    <div>
+        <span id="cart-count">Cart (0)</span>
+        <button id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <h2 id="welcome-message">Welcome, testacc</h2>
+
+    <div class="search-area">
+
+        <input
+            id="search-box"
+            type="text"
+            placeholder="Search products"
+        >
+
+        <button id="search-btn" onclick="searchProducts()">
+            Search
+        </button>
+
+    </div>
+
+    <div id="product-list">
+
+        <div class="product" data-name="Laptop">
+            <h3>Laptop</h3>
+            <p>Price: ₹50,000</p>
+            <button id="add-laptop" onclick="addToCart('Laptop')">
+                Add to Cart
+            </button>
+        </div>
+
+        <div class="product" data-name="Headphones">
+            <h3>Headphones</h3>
+            <p>Price: ₹2,000</p>
+            <button id="add-headphones" onclick="addToCart('Headphones')">
+                Add to Cart
+            </button>
+        </div>
+
+        <div class="product" data-name="Keyboard">
+            <h3>Keyboard</h3>
+            <p>Price: ₹1,500</p>
+            <button id="add-keyboard" onclick="addToCart('Keyboard')">
+                Add to Cart
+            </button>
+        </div>
+
+    </div>
+
+    <p id="cart-message"></p>
+
+</div>
+
+<script>
+
+let cartCount = 0;
+
+function addToCart(productName) {
+
+    cartCount++;
+
+    document.getElementById("cart-count").textContent =
+        "Cart (" + cartCount + ")";
+
+    document.getElementById("cart-message").textContent =
+        productName + " added to cart";
+}
+
+
+function searchProducts() {
+
+    const searchText =
+        document.getElementById("search-box").value.toLowerCase();
+
+    const products =
+        document.querySelectorAll(".product");
+
+    products.forEach(function(product) {
+
+        const productName =
+            product.getAttribute("data-name").toLowerCase();
+
+        if (productName.includes(searchText)) {
+
+            product.style.display = "block";
+
+        } else {
+
+            product.style.display = "none";
+        }
+
+    });
+}
+
+
+function logout() {
+
+    window.location.href = "index.html";
+}
+
+</script>
+
+</body>
+</html>

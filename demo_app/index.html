@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Page - Login</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            width: 320px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 18px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-container">
+
+    <h1>Test Login Page</h1>
+
+    <label for="username">Username</label>
+    <input id="username" type="text">
+
+    <label for="password">Password</label>
+    <input id="password" type="password">
+
+    <button id="login-btn" onclick="login()">Login</button>
+
+    <p id="message"></p>
+
+</div>
+
+<script>
+
+function login() {
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const message = document.getElementById("message");
+
+   if (username === "testacc" && password === "vs12345") {
+
+    window.location.href = "products.html";
+
+    } else {
+
+        message.textContent = "Invalid username or password";
+        message.style.color = "red";
+
+    }
+}
+
+</script>
+
+</body>
+</html>
