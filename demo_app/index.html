@@ -1,96 +1,356 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Login Page - Login</title>
+
+    <title>SmartKart - Login</title>
 
     <style>
-        body {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
             font-family: Arial, sans-serif;
-            background: #f4f6f8;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #06152d, #8c0587);
+        }
+
+        /* Header */
+        header {
+            height: 75px;
+            background: rgb(78, 181, 215);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8%;
+            box-shadow: 0 2px 10px rgba(209, 7, 7, 0.08);
+        }
+
+        .logo {
+            font-size: 30px;
+            font-weight: bold;
+            color: #0b19dd;
+        }
+
+        .logo span {
+            color: #000602;
+        }
+
+        .header-text {
+            color: #010006;
+            font-size: 16px;
+        }
+
+        /* Main page */
+        .main-container {
+            min-height: calc(100vh - 75px);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .login-container {
-            background: white;
             padding: 40px;
-            border-radius: 10px;
-            width: 320px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        h1 {
-            text-align: center;
+        .login-wrapper {
+            width: 900px;
+            max-width: 100%;
+            min-height: 500px;
+            background: rgb(15, 164, 222);
+            border-radius: 20px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            box-shadow: 0 20px 50px rgba(221, 8, 8, 0.12);
+        }
+
+        /* Left side */
+        .welcome-section {
+            background: linear-gradient(135deg, #09c96c, #1d4ed8);
+            color: rgb(0, 0, 0);
+            padding: 60px 45px;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .welcome-section h1 {
+            font-size: 42px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-section p {
+            line-height: 1.7;
+            color: #000000;
+            margin-bottom: 30px;
+        }
+
+        .feature {
+            margin: 11px 0;
+            font-size: 15px;
+        }
+
+        /* Login section */
+        .login-section {
+            padding: 60px 50px;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-section h2 {
+            color: #000000;
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: #040116;
+            margin-bottom: 30px;
+        }
+
+        label {
+            color: #000000;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
         }
 
         input {
             width: 100%;
-            padding: 10px;
-            margin: 8px 0 18px 0;
-            box-sizing: border-box;
+            padding: 14px;
+
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+
+            margin-bottom: 20px;
+
+            font-size: 15px;
+            outline: none;
         }
 
-        button {
+        input:focus {
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        #login-btn {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
+
+            border: none;
+            border-radius: 8px;
+
             background: #2563eb;
             color: white;
-            border: none;
-            border-radius: 5px;
+
+            font-size: 16px;
+            font-weight: bold;
+
             cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #login-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
         }
 
         #message {
+            margin-top: 18px;
             text-align: center;
-            margin-top: 15px;
+            min-height: 20px;
+            font-size: 14px;
+        }
+
+        .demo-info {
+            margin-top: 25px;
+            padding: 12px;
+
+            background: #fffefe;
+            border-radius: 8px;
+
+            color: #64748b;
+            font-size: 12px;
+
+            text-align: center;
+        }
+
+        /* Mobile layout */
+        @media (max-width: 700px) {
+
+            .login-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome-section {
+                display: none;
+            }
+
+            .login-section {
+                padding: 45px 30px;
+            }
         }
     </style>
+
 </head>
 
 <body>
 
-<div class="login-container">
+    <!-- Header -->
 
-    <h1>Test Login Page</h1>
+    <header>
 
-    <label for="username">Username</label>
-    <input id="username" type="text">
+        <div class="logo">
+            Smart<span>Kart</span>
+        </div>
 
-    <label for="password">Password</label>
-    <input id="password" type="password">
+        <div class="header-text">
+            Smart Shopping. Simple Experience.
+        </div>
 
-    <button id="login-btn" onclick="login()">Login</button>
+    </header>
 
-    <p id="message"></p>
 
-</div>
+    <!-- Main Content -->
 
-<script>
+    <main class="main-container">
 
-function login() {
+        <div class="login-wrapper">
 
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    const message = document.getElementById("message");
 
-   if (username === "testacc" && password === "vs12345") {
+            <!-- Left Section -->
 
-    window.location.href = "products.html";
+            <section class="welcome-section">
 
-    } else {
+                <h1>
+                    Welcome to SmartKart
+                </h1>
 
-        message.textContent = "Invalid username or password";
-        message.style.color = "red";
+                <p>
+                    Discover the latest technology products
+                    and accessories through our simple and
+                    modern shopping experience.
+                </p>
 
-    }
-}
+                <div class="feature">
+                    ✓ Browse technology products
+                </div>
 
-</script>
+                <div class="feature">
+                    ✓ Search products instantly
+                </div>
+
+                <div class="feature">
+                    ✓ Add products to your cart
+                </div>
+
+                <div class="feature">
+                    ✓ Fast and simple shopping
+                </div>
+
+            </section>
+
+
+            <!-- Login Section -->
+
+            <section class="login-section">
+
+                <h2>Welcome Back</h2>
+
+                <p class="login-subtitle">
+                    Sign in to continue shopping.
+                </p>
+
+
+                <label for="username">
+                    Username
+                </label>
+
+                <input
+                    type="text"
+                    id="username"
+                    placeholder="Enter your username"
+                >
+
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Enter your password"
+                >
+
+
+                <button
+                    id="login-btn"
+                    onclick="login()"
+                >
+                    Login
+                </button>
+
+
+                <p id="message"></p>
+
+
+                <div class="demo-info">
+                    SmartKart Demo Shopping Application
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <script>
+
+        function login() {
+
+            const username =
+                document.getElementById("username").value;
+
+            const password =
+                document.getElementById("password").value;
+
+            const message =
+                document.getElementById("message");
+
+
+            if (
+                username === "testacc" &&
+                password === "vs12345"
+            ) {
+
+                window.location.href =
+                    "products.html";
+
+            }
+
+            else {
+
+                message.textContent =
+                    "Invalid username or password";
+
+                message.style.color =
+                    "red";
+
+            }
+        }
+
+    </script>
 
 </body>
+
 </html>
