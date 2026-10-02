@@ -1,0 +1,561 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SmartKart - Sign Up</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #06152d, #8c0587);
+        }
+
+        /* Header */
+
+        header {
+            height: 75px;
+            background: rgb(78, 181, 215);
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 8%;
+
+            box-shadow: 0 2px 10px rgba(209, 7, 7, 0.08);
+        }
+
+        .logo {
+            font-size: 30px;
+            font-weight: bold;
+            color: #0b19dd;
+        }
+
+        .logo span {
+            color: #000602;
+        }
+
+        .header-text {
+            color: #010006;
+            font-size: 16px;
+        }
+
+        /* Main */
+
+        .main-container {
+            min-height: calc(100vh - 75px);
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 40px;
+        }
+
+        /* Signup card */
+
+        .signup-card {
+            width: 450px;
+            max-width: 100%;
+
+            background: rgb(15, 164, 222);
+
+            border-radius: 20px;
+
+            padding: 50px;
+
+            box-shadow:
+                0 20px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        .signup-card h1 {
+            color: #000000;
+
+            font-size: 32px;
+
+            margin-bottom: 10px;
+
+            text-align: center;
+        }
+
+        .signup-subtitle {
+            color: #040116;
+
+            text-align: center;
+
+            margin-bottom: 30px;
+
+            line-height: 1.5;
+        }
+
+        /* Labels */
+
+        label {
+            display: block;
+
+            color: #000000;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+            margin-bottom: 8px;
+        }
+
+        /* Inputs */
+
+        input {
+            width: 100%;
+
+            padding: 14px;
+
+            border: 1px solid #cbd5e1;
+
+            border-radius: 8px;
+
+            margin-bottom: 20px;
+
+            font-size: 15px;
+
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Signup button */
+
+        #signup-submit {
+            width: 100%;
+
+            padding: 14px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background: #000000;
+
+            color: white;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        #signup-submit:hover {
+            background: #000000;
+
+            transform: translateY(-1px);
+        }
+
+        /* Message */
+
+        #message {
+            margin-top: 18px;
+
+            text-align: center;
+
+            min-height: 20px;
+
+            font-size: 14px;
+
+            font-weight: bold;
+        }
+
+        /* Login link */
+
+        .login-link {
+            margin-top: 25px;
+
+            text-align: center;
+
+            color: #000000;
+
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #000000;
+
+            font-weight: bold;
+
+            text-decoration: underline;
+
+            cursor: pointer;
+        }
+
+        .login-link a:hover {
+            color: #2563eb;
+        }
+
+        /* Group information */
+
+        .demo-info {
+            margin-top: 25px;
+
+            padding: 12px;
+
+            background: #000000;
+
+            border-radius: 8px;
+
+            color: #ffffff;
+
+            font-size: 12px;
+
+            text-align: center;
+        }
+
+        /* Mobile */
+
+        @media (max-width: 600px) {
+
+            header {
+                padding: 0 5%;
+            }
+
+            .header-text {
+                display: none;
+            }
+
+            .main-container {
+                padding: 20px;
+            }
+
+            .signup-card {
+                padding: 35px 25px;
+            }
+
+            .signup-card h1 {
+                font-size: 28px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- Header -->
+
+    <header>
+
+        <div class="logo">
+            Smart<span>Kart</span>
+        </div>
+
+        <div class="header-text">
+            Smart Shopping. Simple Experience.
+        </div>
+
+    </header>
+
+
+    <!-- Main Content -->
+
+    <main class="main-container">
+
+        <section class="signup-card">
+
+            <h1>
+                Create Account
+            </h1>
+
+            <p class="signup-subtitle">
+                Sign up to start shopping with SmartKart.
+            </p>
+
+
+            <!-- Username -->
+
+            <label for="username">
+                Username
+            </label>
+
+            <input
+                type="text"
+                id="username"
+                placeholder="Enter your username"
+                autocomplete="username"
+            >
+
+
+            <!-- Password -->
+
+            <label for="password">
+                Password
+            </label>
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Enter your password"
+                autocomplete="new-password"
+            >
+
+
+            <!-- Confirm Password -->
+
+            <label for="confirm-password">
+                Confirm Password
+            </label>
+
+            <input
+                type="password"
+                id="confirm-password"
+                placeholder="Re-enter your password"
+                autocomplete="new-password"
+            >
+
+
+            <!-- Signup Button -->
+
+            <button
+                id="signup-submit"
+                onclick="signup()"
+            >
+                Create Account
+            </button>
+
+
+            <!-- Message -->
+
+            <p id="message"></p>
+
+
+            <!-- Login -->
+
+            <p class="login-link">
+
+                Already have an account?
+
+                <a href="index.html">
+                    Login here
+                </a>
+
+            </p>
+
+
+            <!-- Group -->
+
+            <div class="demo-info">
+                By Group 7
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        async function signup() {
+
+            const username =
+                document.getElementById("username")
+                    .value
+                    .trim();
+
+            const password =
+                document.getElementById("password")
+                    .value;
+
+            const confirmPassword =
+                document.getElementById("confirm-password")
+                    .value;
+
+            const message =
+                document.getElementById("message");
+
+
+            /* Clear previous message */
+
+            message.textContent = "";
+
+
+            /* Validate username */
+
+            if (!username) {
+
+                message.textContent =
+                    "Please enter a username";
+
+                message.style.color =
+                    "red";
+
+                return;
+            }
+
+
+            /* Validate username length */
+
+            if (username.length < 3) {
+
+                message.textContent =
+                    "Username must be at least 3 characters";
+
+                message.style.color =
+                    "red";
+
+                return;
+            }
+
+
+            /* Validate password */
+
+            if (!password) {
+
+                message.textContent =
+                    "Please enter a password";
+
+                message.style.color =
+                    "red";
+
+                return;
+            }
+
+
+            /* Validate password length */
+
+            if (password.length < 6) {
+
+                message.textContent =
+                    "Password must be at least 6 characters";
+
+                message.style.color =
+                    "red";
+
+                return;
+            }
+
+
+            /* Check passwords */
+
+            if (password !== confirmPassword) {
+
+                message.textContent =
+                    "Passwords do not match";
+
+                message.style.color =
+                    "red";
+
+                return;
+            }
+
+
+            try {
+
+                /* Send signup request */
+
+                const response =
+                    await fetch("/api/signup", {
+
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            username: username,
+
+                            password: password
+
+                        })
+
+                    });
+
+
+                const result =
+                    await response.json();
+
+
+                /* Account created */
+
+                if (result.success) {
+
+                    message.textContent =
+                        "Account created successfully! Redirecting to login...";
+
+                    message.style.color =
+                        "green";
+
+
+                    /*
+                     * Wait briefly so the user
+                     * can see the success message.
+                     */
+
+                    setTimeout(
+                        function () {
+
+                            window.location.href =
+                                "index.html";
+
+                        },
+                        1000
+                    );
+
+                }
+
+
+                /* Signup failed */
+
+                else {
+
+                    message.textContent =
+                        result.message;
+
+                    message.style.color =
+                        "red";
+                }
+
+            }
+
+            catch (error) {
+
+                console.error(error);
+
+                message.textContent =
+                    "Unable to connect to the server";
+
+                message.style.color =
+                    "red";
+            }
+
+        }
+
+    </script>
+
+
+</body>
+
+</html>
+```

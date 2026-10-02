@@ -866,7 +866,7 @@
 
     <h2 id="welcome-message">
 
-        Welcome, testacc
+        Welcome
 
     </h2>
 
@@ -1022,6 +1022,40 @@
         "smartkart_cart";
 
 
+    /* ===================================
+       SHOW LOGGED-IN USERNAME
+    ==================================== */
+
+    function updateWelcomeMessage() {
+
+        const username =
+            localStorage.getItem(
+                "smartkart_username"
+            );
+
+
+        const welcomeMessage =
+            document.getElementById(
+                "welcome-message"
+            );
+
+
+        if (username) {
+
+            welcomeMessage.textContent =
+                "Welcome, " + username;
+
+        }
+
+        else {
+
+            welcomeMessage.textContent =
+                "Welcome";
+
+        }
+
+    }
+
 
     /* ===================================
        GET CART FROM LOCAL STORAGE
@@ -1111,6 +1145,7 @@
                 "cart-count"
             )
             .textContent =
+
             "Cart (" +
             totalQuantity +
             ")";
@@ -1174,6 +1209,7 @@
 
         }
 
+
         catch (error) {
 
             console.error(
@@ -1213,6 +1249,7 @@
     function displayProducts(
         products
     ) {
+
 
         const grid =
             document.getElementById(
@@ -1315,6 +1352,7 @@
                     `;
 
                 }
+
 
                 else {
 
@@ -1654,6 +1692,7 @@
 
         }
 
+
         else {
 
 
@@ -1764,6 +1803,26 @@
 
     function logout() {
 
+        /*
+            Clear the shopping cart.
+        */
+
+        localStorage.removeItem(
+            CART_KEY
+        );
+
+
+        /*
+            Clear the logged-in username
+            so another user does not
+            inherit the previous account.
+        */
+
+        localStorage.removeItem(
+            "smartkart_username"
+        );
+
+
         window.location.href =
             "index.html";
 
@@ -1774,6 +1833,9 @@
     /* ===================================
        PAGE INITIALIZATION
     ==================================== */
+
+    updateWelcomeMessage();
+
 
     updateCartCount();
 
@@ -1787,3 +1849,4 @@
 </body>
 
 </html>
+```
