@@ -2,10 +2,16 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>SmartKart - Products</title>
+
 
     <style>
 
@@ -16,15 +22,21 @@
             font-family: Arial, sans-serif;
         }
 
+
+        /* =========================
+           PAGE BACKGROUND
+           SAME AS LOGIN PAGE
+        ========================== */
+
         body {
             min-height: 100vh;
 
-            background: linear-gradient(
-                135deg,
-                #07152f 0%,
-                #24103f 45%,
-                #800080 100%
-            );
+            background:
+                linear-gradient(
+                    135deg,
+                    #06152d,
+                    #8c0587
+                );
 
             color: white;
         }
@@ -40,7 +52,9 @@
             background: #4eb1d1;
 
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
 
             gap: 30px;
@@ -48,19 +62,24 @@
             padding: 14px 7%;
 
             position: sticky;
+
             top: 0;
 
             z-index: 100;
 
             box-shadow:
-                0 2px 12px rgba(0, 0, 0, 0.15);
+                0 2px 12px
+                rgba(0, 0, 0, 0.15);
         }
 
 
-        /* SmartKart logo */
+        /* =========================
+           SMARTKART LOGO
+        ========================== */
 
         #store-title {
             font-size: 30px;
+
             font-weight: bold;
 
             color: #1236db;
@@ -74,9 +93,11 @@
             transition: 0.2s;
         }
 
+
         #store-title span {
             color: #111827;
         }
+
 
         #store-title:hover {
             transform: scale(1.04);
@@ -94,6 +115,7 @@
 
             display: flex;
         }
+
 
         #search-box {
             width: 100%;
@@ -113,9 +135,11 @@
             background: white;
         }
 
+
         #search-box:focus {
             border-color: #2563eb;
         }
+
 
         #search-btn {
             padding: 13px 24px;
@@ -132,6 +156,7 @@
 
             font-weight: bold;
         }
+
 
         #search-btn:hover {
             background: #1d4ed8;
@@ -150,7 +175,12 @@
             gap: 14px;
         }
 
+
+        /* CART BUTTON */
+
         #cart-count {
+            border: none;
+
             background: white;
 
             color: #2563eb;
@@ -162,7 +192,21 @@
             font-weight: bold;
 
             white-space: nowrap;
+
+            cursor: pointer;
+
+            transition: 0.2s;
         }
+
+
+        #cart-count:hover {
+            background: #eff6ff;
+
+            transform: translateY(-2px);
+        }
+
+
+        /* LOGOUT */
 
         #logout-btn {
             border: none;
@@ -179,6 +223,7 @@
 
             font-weight: bold;
         }
+
 
         #logout-btn:hover {
             background: #dc2626;
@@ -198,12 +243,13 @@
 
             border-radius: 22px;
 
-            background: linear-gradient(
-                120deg,
-                #16c784 0%,
-                #1696b8 45%,
-                #2563eb 100%
-            );
+            background:
+                linear-gradient(
+                    120deg,
+                    #16c784 0%,
+                    #1696b8 45%,
+                    #2563eb 100%
+                );
 
             display: flex;
 
@@ -212,18 +258,22 @@
             align-items: center;
 
             box-shadow:
-                0 15px 35px rgba(0, 0, 0, 0.25);
+                0 15px 35px
+                rgba(0, 0, 0, 0.25);
         }
+
 
         .hero-content {
             max-width: 650px;
         }
+
 
         .hero h1 {
             font-size: 40px;
 
             margin-bottom: 14px;
         }
+
 
         .hero p {
             color: #e0f2fe;
@@ -232,6 +282,7 @@
 
             font-size: 16px;
         }
+
 
         .hero-icon {
             font-size: 85px;
@@ -248,6 +299,7 @@
             margin: 0 7% 20px;
         }
 
+
         #welcome-message {
             font-size: 25px;
 
@@ -255,6 +307,7 @@
 
             color: white;
         }
+
 
         .welcome-area p {
             color: #dbeafe;
@@ -275,9 +328,11 @@
             flex-wrap: wrap;
         }
 
+
         .category-btn {
             border:
-                1px solid rgba(255, 255, 255, 0.35);
+                1px solid
+                rgba(255, 255, 255, 0.35);
 
             background:
                 rgba(255, 255, 255, 0.12);
@@ -292,6 +347,7 @@
 
             transition: 0.2s;
         }
+
 
         .category-btn:hover {
             background: #2563eb;
@@ -316,11 +372,13 @@
             align-items: center;
         }
 
+
         .section-heading h2 {
             font-size: 28px;
 
             color: white;
         }
+
 
         #product-total {
             color: #e2e8f0;
@@ -339,7 +397,10 @@
             display: grid;
 
             grid-template-columns:
-                repeat(4, minmax(0, 1fr));
+                repeat(
+                    4,
+                    minmax(0, 1fr)
+                );
 
             gap: 24px;
 
@@ -361,7 +422,8 @@
             padding: 18px;
 
             box-shadow:
-                0 10px 30px rgba(0, 0, 0, 0.22);
+                0 10px 30px
+                rgba(0, 0, 0, 0.22);
 
             display: flex;
 
@@ -372,11 +434,13 @@
             transition: 0.25s;
         }
 
+
         .product:hover {
             transform: translateY(-7px);
 
             box-shadow:
-                0 18px 35px rgba(0, 0, 0, 0.32);
+                0 18px 35px
+                rgba(0, 0, 0, 0.32);
         }
 
 
@@ -389,11 +453,12 @@
 
             height: 180px;
 
-            background: linear-gradient(
-                135deg,
-                #f8fafc,
-                #e8eef6
-            );
+            background:
+                linear-gradient(
+                    135deg,
+                    #f8fafc,
+                    #e8eef6
+                );
 
             border-radius: 13px;
 
@@ -408,6 +473,7 @@
             margin-bottom: 18px;
         }
 
+
         .product-image img {
             width: 100%;
 
@@ -417,6 +483,7 @@
 
             padding: 15px;
         }
+
 
         .image-fallback {
             font-size: 65px;
@@ -439,6 +506,7 @@
             margin-bottom: 8px;
         }
 
+
         .product h3 {
             font-size: 19px;
 
@@ -446,6 +514,7 @@
 
             min-height: 24px;
         }
+
 
         .description {
             color: #64748b;
@@ -457,9 +526,11 @@
             min-height: 60px;
         }
 
+
         .product-bottom {
             margin-top: auto;
         }
+
 
         .price {
             margin-top: 15px;
@@ -473,6 +544,7 @@
             color: #0f172a;
         }
 
+
         .stock {
             color: #16a34a;
 
@@ -483,9 +555,15 @@
             margin-bottom: 15px;
         }
 
+
         .out-of-stock {
             color: #ef4444;
         }
+
+
+        /* =========================
+           ADD TO CART BUTTON
+        ========================== */
 
         .add-btn {
             width: 100%;
@@ -507,9 +585,11 @@
             transition: 0.2s;
         }
 
+
         .add-btn:hover {
             background: #1d4ed8;
         }
+
 
         .add-btn:disabled {
             background: #94a3b8;
@@ -555,7 +635,8 @@
             border-radius: 10px;
 
             box-shadow:
-                0 6px 20px rgba(0, 0, 0, 0.3);
+                0 6px 20px
+                rgba(0, 0, 0, 0.3);
 
             display: none;
 
@@ -580,7 +661,8 @@
             margin-top: 50px;
 
             border-top:
-                1px solid rgba(255, 255, 255, 0.12);
+                1px solid
+                rgba(255, 255, 255, 0.12);
         }
 
 
@@ -592,8 +674,12 @@
 
             #products-grid {
                 grid-template-columns:
-                    repeat(3, minmax(0, 1fr));
+                    repeat(
+                        3,
+                        minmax(0, 1fr)
+                    );
             }
+
         }
 
 
@@ -601,12 +687,17 @@
 
             #products-grid {
                 grid-template-columns:
-                    repeat(2, minmax(0, 1fr));
+                    repeat(
+                        2,
+                        minmax(0, 1fr)
+                    );
             }
+
 
             header {
                 flex-wrap: wrap;
             }
+
 
             .search-container {
                 order: 3;
@@ -614,9 +705,11 @@
                 min-width: 100%;
             }
 
+
             .hero-icon {
                 display: none;
             }
+
         }
 
 
@@ -626,13 +719,21 @@
                 grid-template-columns: 1fr;
             }
 
+
             .hero {
                 padding: 30px;
             }
 
+
             .hero h1 {
                 font-size: 30px;
             }
+
+
+            .header-actions {
+                gap: 8px;
+            }
+
         }
 
     </style>
@@ -643,18 +744,25 @@
 <body>
 
 
-<!-- HEADER -->
+<!-- =========================
+     HEADER
+========================== -->
 
 <header>
+
 
     <a
         href="index.html"
         id="store-title"
         title="Go to SmartKart Home"
     >
+
         Smart<span>Kart</span>
+
     </a>
 
+
+    <!-- SEARCH -->
 
     <div class="search-container">
 
@@ -664,27 +772,45 @@
             placeholder="Search SmartKart products..."
         >
 
+
         <button
             id="search-btn"
             onclick="searchProducts()"
         >
+
             Search
+
         </button>
 
     </div>
 
 
+    <!-- HEADER ACTIONS -->
+
     <div class="header-actions">
 
-        <div id="cart-count">
+
+        <!-- CART BUTTON -->
+
+        <button
+            id="cart-count"
+            onclick="openCart()"
+        >
+
             Cart (0)
-        </div>
+
+        </button>
+
+
+        <!-- LOGOUT -->
 
         <button
             id="logout-btn"
             onclick="logout()"
         >
+
             Logout
+
         </button>
 
     </div>
@@ -693,140 +819,189 @@
 
 
 
-<!-- HERO -->
+<!-- =========================
+     HERO
+========================== -->
 
 <section class="hero">
+
 
     <div class="hero-content">
 
         <h1>
+
             Technology for everyone.
+
         </h1>
 
+
         <p>
+
             Explore laptops, computer accessories,
             audio devices, storage and everyday
             technology products at SmartKart.
+
         </p>
 
     </div>
 
+
     <div class="hero-icon">
+
         🛒
+
     </div>
+
 
 </section>
 
 
 
-<!-- WELCOME -->
+<!-- =========================
+     WELCOME
+========================== -->
 
 <section class="welcome-area">
 
+
     <h2 id="welcome-message">
+
         Welcome, testacc
+
     </h2>
 
+
     <p>
+
         Find the technology you need today.
+
     </p>
+
 
 </section>
 
 
 
-<!-- CATEGORIES -->
+<!-- =========================
+     CATEGORIES
+========================== -->
 
 <section class="categories">
+
 
     <button
         class="category-btn"
         onclick="filterCategory('All')"
     >
+
         All
+
     </button>
+
 
     <button
         class="category-btn"
         onclick="filterCategory('Computers')"
     >
+
         Computers
+
     </button>
+
 
     <button
         class="category-btn"
         onclick="filterCategory('Audio')"
     >
+
         Audio
+
     </button>
+
 
     <button
         class="category-btn"
         onclick="filterCategory('Accessories')"
     >
+
         Accessories
+
     </button>
+
 
     <button
         class="category-btn"
         onclick="filterCategory('Storage')"
     >
+
         Storage
+
     </button>
+
 
 </section>
 
 
 
-<!-- PRODUCT HEADING -->
+<!-- =========================
+     PRODUCT HEADING
+========================== -->
 
 <div class="section-heading">
 
+
     <h2>
+
         Featured Products
+
     </h2>
 
+
     <span id="product-total">
+
         Loading...
+
     </span>
+
 
 </div>
 
 
 
-<!--
-    IMPORTANT:
-    No products are hardcoded here anymore.
-
-    JavaScript will load them from:
-
-    smartkart.db
-         ↓
-       Flask
-         ↓
-    /api/products
-         ↓
-      this grid
--->
+<!-- =========================
+     PRODUCT GRID
+========================== -->
 
 <main id="products-grid">
 
+
     <div id="loading-message">
+
         Loading SmartKart products...
+
     </div>
+
 
 </main>
 
 
 
+<!-- CART MESSAGE -->
+
 <div id="cart-message"></div>
 
 
 
+<!-- =========================
+     FOOTER
+========================== -->
+
 <footer>
 
     SmartKart Demo Store
+
     &nbsp; | &nbsp;
+
     Self-Healing UI Test Automation Project
 
 </footer>
@@ -835,9 +1010,126 @@
 
 <script>
 
-    let cartCount = 0;
+
+    /* ===================================
+       GLOBAL VARIABLES
+    ==================================== */
 
     let allProducts = [];
+
+
+    const CART_KEY =
+        "smartkart_cart";
+
+
+
+    /* ===================================
+       GET CART FROM LOCAL STORAGE
+    ==================================== */
+
+    function getCart() {
+
+        try {
+
+            const savedCart =
+                localStorage.getItem(
+                    CART_KEY
+                );
+
+
+            if (!savedCart) {
+
+                return [];
+
+            }
+
+
+            return JSON.parse(
+                savedCart
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Unable to read cart:",
+                error
+            );
+
+            return [];
+
+        }
+
+    }
+
+
+
+    /* ===================================
+       SAVE CART TO LOCAL STORAGE
+    ==================================== */
+
+    function saveCart(cart) {
+
+        localStorage.setItem(
+            CART_KEY,
+            JSON.stringify(cart)
+        );
+
+    }
+
+
+
+    /* ===================================
+       UPDATE CART COUNT
+    ==================================== */
+
+    function updateCartCount() {
+
+        const cart =
+            getCart();
+
+
+        const totalQuantity =
+            cart.reduce(
+                function (total, item) {
+
+                    return (
+                        total +
+                        Number(
+                            item.quantity || 0
+                        )
+                    );
+
+                },
+                0
+            );
+
+
+        document
+            .getElementById(
+                "cart-count"
+            )
+            .textContent =
+            "Cart (" +
+            totalQuantity +
+            ")";
+
+    }
+
+
+
+    /* ===================================
+       OPEN CART PAGE
+    ==================================== */
+
+    function openCart() {
+
+        window.location.href =
+            "cart.html";
+
+    }
+
 
 
     /* ===================================
@@ -877,11 +1169,16 @@
                 allProducts
             );
 
+
+            updateCartCount();
+
         }
 
         catch (error) {
 
-            console.error(error);
+            console.error(
+                error
+            );
 
 
             grid.innerHTML = `
@@ -913,7 +1210,9 @@
        DISPLAY PRODUCTS
     ==================================== */
 
-    function displayProducts(products) {
+    function displayProducts(
+        products
+    ) {
 
         const grid =
             document.getElementById(
@@ -934,8 +1233,18 @@
                     );
 
 
+                /*
+                    Keep both classes.
+
+                    product:
+                    Existing SmartKart styling.
+
+                    product-card:
+                    Helpful for Playwright tests.
+                */
+
                 card.className =
-                    "product";
+                    "product product-card";
 
 
                 card.dataset.name =
@@ -947,14 +1256,16 @@
 
 
                 /*
-                    Keep predictable IDs for
-                    Playwright tests.
+                    Keep predictable IDs
+                    for Playwright tests.
 
                     Example:
-                    Laptop -> add-laptop
 
-                    Wireless Mouse ->
-                    add-wireless-mouse
+                    Laptop
+                    -> add-laptop
+
+                    Wireless Mouse
+                    -> add-wireless-mouse
                 */
 
                 const buttonId =
@@ -985,7 +1296,12 @@
                 let buttonDisabled = "";
 
 
-                if (product.stock > 0) {
+                if (
+                    Number(
+                        product.stock
+                    ) > 0
+                ) {
+
 
                     stockHTML = `
 
@@ -1001,6 +1317,7 @@
                 }
 
                 else {
+
 
                     stockHTML = `
 
@@ -1024,6 +1341,7 @@
                 }
 
 
+
                 card.innerHTML = `
 
                     <div
@@ -1040,11 +1358,14 @@
                             "
                         >
 
+
                         <span
                             class="image-fallback"
                             style="display:none;"
                         >
+
                             📦
+
                         </span>
 
                     </div>
@@ -1060,7 +1381,9 @@
 
 
                     <h3>
+
                         ${product.name}
+
                     </h3>
 
 
@@ -1074,6 +1397,7 @@
                     <div
                         class="product-bottom"
                     >
+
 
                         <div class="price">
 
@@ -1090,12 +1414,13 @@
 
                             class="add-btn"
 
-                            onclick=
-                                "addToCart(
+                            onclick="
+                                addToCart(
                                     '${escapeForJavascript(
                                         product.name
                                     )}'
-                                )"
+                                )
+                            "
 
                             ${buttonDisabled}
                         >
@@ -1103,6 +1428,7 @@
                             Add to Cart
 
                         </button>
+
 
                     </div>
 
@@ -1129,7 +1455,9 @@
        SAFE PRODUCT NAME
     ==================================== */
 
-    function escapeForJavascript(text) {
+    function escapeForJavascript(
+        text
+    ) {
 
         return text
             .replace(
@@ -1149,7 +1477,9 @@
        PRODUCT COUNT
     ==================================== */
 
-    function updateProductCount(count) {
+    function updateProductCount(
+        count
+    ) {
 
         document
             .getElementById(
@@ -1207,9 +1537,13 @@
        CATEGORY FILTER
     ==================================== */
 
-    function filterCategory(category) {
+    function filterCategory(
+        category
+    ) {
 
-        if (category === "All") {
+        if (
+            category === "All"
+        ) {
 
             displayProducts(
                 allProducts
@@ -1242,23 +1576,126 @@
 
 
     /* ===================================
-       ADD TO CART
+       ADD PRODUCT TO CART
     ==================================== */
 
-    function addToCart(productName) {
+    function addToCart(
+        productName
+    ) {
 
-        cartCount++;
+
+        /*
+            Find the complete product
+            from the database-loaded
+            product list.
+        */
+
+        const product =
+            allProducts.find(
+                function (item) {
+
+                    return (
+                        item.name ===
+                        productName
+                    );
+
+                }
+            );
 
 
-        document
-            .getElementById(
-                "cart-count"
-            )
-            .textContent =
-            "Cart (" +
-            cartCount +
-            ")";
+        if (!product) {
 
+            console.error(
+                "Product not found:",
+                productName
+            );
+
+            return;
+
+        }
+
+
+
+        /* Get existing cart */
+
+        const cart =
+            getCart();
+
+
+
+        /*
+            Check whether product
+            already exists in cart.
+        */
+
+        const existingItem =
+            cart.find(
+                function (item) {
+
+                    return (
+                        Number(item.id) ===
+                        Number(product.id)
+                    );
+
+                }
+            );
+
+
+
+        if (existingItem) {
+
+
+            /*
+                Product already exists.
+                Increase quantity.
+            */
+
+            existingItem.quantity += 1;
+
+        }
+
+        else {
+
+
+            /*
+                Add new product.
+            */
+
+            cart.push({
+
+                id: product.id,
+
+                name: product.name,
+
+                price: Number(
+                    product.price
+                ),
+
+                image: product.image,
+
+                quantity: 1
+
+            });
+
+        }
+
+
+
+        /* Save updated cart */
+
+        saveCart(
+            cart
+        );
+
+
+
+        /* Update header */
+
+        updateCartCount();
+
+
+
+        /* Show success message */
 
         const message =
             document.getElementById(
@@ -1274,6 +1711,12 @@
         message.style.display =
             "block";
 
+
+
+        /*
+            Hide message after
+            2 seconds.
+        */
 
         setTimeout(
             function () {
@@ -1302,7 +1745,8 @@
             function (event) {
 
                 if (
-                    event.key === "Enter"
+                    event.key ===
+                    "Enter"
                 ) {
 
                     searchProducts();
@@ -1328,11 +1772,14 @@
 
 
     /* ===================================
-       LOAD DATABASE PRODUCTS WHEN PAGE
-       OPENS
+       PAGE INITIALIZATION
     ==================================== */
 
+    updateCartCount();
+
+
     loadProducts();
+
 
 </script>
 

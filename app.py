@@ -1,81 +1,73 @@
 from flask import Flask, jsonify, send_from_directory
 import sqlite3
 
-
 app = Flask(__name__)
 
 DATABASE = "smartkart.db"
 
 
-# ---------------------------------------
+# =========================================================
 # DATABASE CONNECTION
-# ---------------------------------------
+# =========================================================
 
 def get_database_connection():
-
     connection = sqlite3.connect(DATABASE)
-
-    # Allows us to access columns by name
     connection.row_factory = sqlite3.Row
-
     return connection
 
 
-# ---------------------------------------
-# HOME PAGE
-# ---------------------------------------
+# =========================================================
+# HOME / LOGIN PAGE
+# =========================================================
 
 @app.route("/")
 def home():
+    return send_from_directory("demo_app", "index.html")
 
-    return send_from_directory(
-        "demo_app",
-        "index.html"
-    )
-
-
-# ---------------------------------------
-# INDEX.HTML
-# ---------------------------------------
 
 @app.route("/index.html")
 def index_page():
-
-    return send_from_directory(
-        "demo_app",
-        "index.html"
-    )
+    return send_from_directory("demo_app", "index.html")
 
 
-# ---------------------------------------
+# =========================================================
 # PRODUCTS PAGE
-# ---------------------------------------
+# =========================================================
 
 @app.route("/products.html")
 def products_page():
-
-    return send_from_directory(
-        "demo_app",
-        "products.html"
-    )
+    return send_from_directory("demo_app", "products.html")
 
 
-# ---------------------------------------
+# =========================================================
+# CART PAGE
+# =========================================================
+
+@app.route("/cart.html")
+def cart_page():
+    return send_from_directory("demo_app", "cart.html")
+
+
+@app.route("/cart")
+def cart_page_short():
+    return send_from_directory("demo_app", "cart.html")
+
+
+# =========================================================
 # PRODUCT IMAGES
-# ---------------------------------------
+# =========================================================
 
 @app.route("/images/<path:filename>")
 def product_images(filename):
-
     return send_from_directory(
         "demo_app/images",
         filename
     )
 
 
-# ---------------------------------------
+# =========================================================
 # PRODUCTS API
-# ---------------------------------------
+# =========================================================
 
 @app.route("/api/products")
 def get_products():
@@ -102,6 +94,7 @@ def get_products():
 
     product_list = []
 
+
     for product in products:
 
         product_list.append({
@@ -126,9 +119,9 @@ def get_products():
     return jsonify(product_list)
 
 
-# ---------------------------------------
-# START SMARTKART
-# ---------------------------------------
+# =========================================================
+# START FLASK SERVER
+# =========================================================
 
 if __name__ == "__main__":
 

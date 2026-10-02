@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartKart - Cart</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #06152d, #8c0587);
+            color: white;
+        }
+
+        /* HEADER */
+        header {
+            min-height: 75px;
+            background: #4eb1d1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 7%;
+            gap: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo {
+            font-size: 30px;
+            font-weight: bold;
+            color: #1236db;
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: #111827;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            border: none;
+            padding: 11px 17px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .continue-btn {
+            background: white;
+            color: #2563eb;
+        }
+
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* MAIN */
+        .cart-container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px 50px;
+        }
+
+        .cart-container h1 {
+            font-size: 34px;
+            margin-bottom: 8px;
+        }
+
+        .cart-container > p {
+            color: #dbeafe;
+            margin-bottom: 25px;
+        }
+
+        .cart-panel {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+        }
+
+        /* CART ITEM */
+        .cart-item {
+            display: grid;
+            grid-template-columns: 100px 1fr auto auto;
+            gap: 20px;
+            align-items: center;
+
+            background: white;
+            color: #1e293b;
+
+            padding: 16px;
+            border-radius: 14px;
+            margin-bottom: 15px;
+        }
+
+        .cart-item img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 8px;
+        }
+
+        .item-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        .item-price {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        /* QUANTITY */
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 7px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .qty-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .qty-value {
+            min-width: 25px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* REMOVE */
+        .remove-btn {
+            border: none;
+            background: #ef4444;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 7px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .remove-btn:hover {
+            background: #dc2626;
+        }
+
+        .line-total {
+            font-weight: bold;
+            min-width: 90px;
+            text-align: right;
+        }
+
+        /* SUMMARY */
+        .cart-summary {
+            margin-top: 25px;
+            padding-top: 20px;
+
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 15px;
+        }
+
+        .total-row {
+            width: 100%;
+            max-width: 350px;
+
+            display: flex;
+            justify-content: space-between;
+
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* ORDER BUTTON */
+        #order-now-btn {
+            border: none;
+            background: #16a34a;
+            color: white;
+
+            padding: 14px 30px;
+
+            border-radius: 9px;
+
+            font-weight: bold;
+            cursor: pointer;
+
+            font-size: 16px;
+        }
+
+        #order-now-btn:hover {
+            background: #15803d;
+        }
+
+        #order-now-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* EMPTY CART */
+        .empty-cart {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-cart h2 {
+            margin-bottom: 10px;
+        }
+
+        .empty-cart p {
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+
+        .empty-cart button {
+            border: none;
+            background: #2563eb;
+            color: white;
+
+            padding: 12px 22px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* ORDER MESSAGE */
+        #order-message {
+            text-align: center;
+            color: #86efac;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        /* MOBILE */
+        @media (max-width: 700px) {
+
+            .cart-item {
+                grid-template-columns: 80px 1fr;
+            }
+
+            .qty-controls,
+            .line-total,
+            .remove-btn {
+                grid-column: 2;
+                justify-self: start;
+            }
+
+            .line-total {
+                text-align: left;
+            }
+
+            header {
+                flex-wrap: wrap;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+
+        <a href="products.html" class="logo">
+            Smart<span>Kart</span>
+        </a>
+
+        <div class="header-actions">
+
+            <button
+                class="nav-btn continue-btn"
+                onclick="window.location.href='products.html'"
+            >
+                Continue Shopping
+            </button>
+
+            <button
+                class="nav-btn logout-btn"
+                onclick="logout()"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- MAIN CART -->
+    <main class="cart-container">
+
+        <h1>Your Shopping Cart</h1>
+
+        <p>
+            Review your selected products before placing your order.
+        </p>
+
+
+        <section class="cart-panel">
+
+            <!-- CART ITEMS -->
+            <div id="cart-items"></div>
+
+
+            <!-- SUMMARY -->
+            <div id="cart-summary" class="cart-summary">
+
+                <div class="total-row">
+
+                    <span>Total</span>
+
+                    <span id="cart-total">
+                        ₹0.00
+                    </span>
+
+                </div>
+
+
+                <button
+                    id="order-now-btn"
+                    onclick="placeOrder()"
+                >
+                    Order Now
+                </button>
+
+            </div>
+
+
+            <!-- ORDER MESSAGE -->
+            <p id="order-message"></p>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        const CART_KEY = "smartkart_cart";
+
+
+        /* GET CART */
+        function getCart() {
+
+            try {
+
+                return JSON.parse(
+                    localStorage.getItem(CART_KEY)
+                ) || [];
+
+            } catch (error) {
+
+                console.error(
+                    "Unable to read cart:",
+                    error
+                );
+
+                return [];
+
+            }
+
+        }
+
+
+        /* SAVE CART */
+        function saveCart(cart) {
+
+            localStorage.setItem(
+                CART_KEY,
+                JSON.stringify(cart)
+            );
+
+        }
+
+
+        /* IMAGE PATH */
+        function imagePath(image) {
+
+            if (!image) {
+                return "";
+            }
+
+            if (
+                image.startsWith("/") ||
+                image.startsWith("images/")
+            ) {
+                return image;
+            }
+
+            return "images/" + image;
+
+        }
+
+
+        /* FORMAT PRICE */
+        function formatPrice(value) {
+
+            return "₹" +
+                Number(value).toLocaleString(
+                    "en-IN",
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+
+        }
+
+
+        /* DISPLAY CART */
+        function renderCart() {
+
+            const cart = getCart();
+
+            const container =
+                document.getElementById("cart-items");
+
+            const summary =
+                document.getElementById("cart-summary");
+
+            const totalEl =
+                document.getElementById("cart-total");
+
+            const orderBtn =
+                document.getElementById("order-now-btn");
+
+
+            /* EMPTY CART */
+            if (!cart.length) {
+
+                container.innerHTML = `
+
+                    <div class="empty-cart">
+
+                        <h2>
+                            Your cart is empty
+                        </h2>
+
+                        <p>
+                            Add some products from
+                            SmartKart to continue.
+                        </p>
+
+                        <button
+                            onclick="window.location.href='products.html'"
+                        >
+                            Start Shopping
+                        </button>
+
+                    </div>
+
+                `;
+
+                summary.style.display = "none";
+
+                return;
+            }
+
+
+            summary.style.display = "flex";
+
+
+            let total = 0;
+
+            container.innerHTML = "";
+
+
+            /* DISPLAY EACH PRODUCT */
+            cart.forEach(function(item) {
+
+                const lineTotal =
+                    Number(item.price) *
+                    Number(item.quantity);
+
+
+                total += lineTotal;
+
+
+                const row =
+                    document.createElement("div");
+
+
+                row.className = "cart-item";
+
+
+                row.innerHTML = `
+
+                    <img
+                        src="${imagePath(item.image)}"
+                        alt="${item.name}"
+                        onerror="this.style.display='none'"
+                    >
+
+
+                    <div>
+
+                        <div class="item-name">
+                            ${item.name}
+                        </div>
+
+                        <div class="item-price">
+                            ${formatPrice(item.price)}
+                            each
+                        </div>
+
+                    </div>
+
+
+                    <div class="qty-controls">
+
+                        <button
+                            class="qty-btn"
+                            onclick="changeQuantity(${item.id}, -1)"
+                        >
+                            −
+                        </button>
+
+
+                        <span class="qty-value">
+                            ${item.quantity}
+                        </span>
+
+
+                        <button
+                            class="qty-btn"
+                            onclick="changeQuantity(${item.id}, 1)"
+                        >
+                            +
+                        </button>
+
+                    </div>
+
+
+                    <div>
+
+                        <div class="line-total">
+                            ${formatPrice(lineTotal)}
+                        </div>
+
+
+                        <button
+                            class="remove-btn"
+                            onclick="removeItem(${item.id})"
+                        >
+                            Remove
+                        </button>
+
+                    </div>
+
+                `;
+
+
+                container.appendChild(row);
+
+            });
+
+
+            /* TOTAL */
+            totalEl.textContent =
+                formatPrice(total);
+
+
+            orderBtn.disabled = false;
+
+        }
+
+
+        /* CHANGE QUANTITY */
+        function changeQuantity(id, delta) {
+
+            const cart = getCart();
+
+
+            const item = cart.find(function(product) {
+
+                return Number(product.id) === Number(id);
+
+            });
+
+
+            if (!item) {
+                return;
+            }
+
+
+            item.quantity =
+                Number(item.quantity) + delta;
+
+
+            if (item.quantity <= 0) {
+
+                removeItem(id);
+
+                return;
+
+            }
+
+
+            saveCart(cart);
+
+            renderCart();
+
+        }
+
+
+        /* REMOVE ITEM */
+        function removeItem(id) {
+
+            const cart =
+                getCart().filter(function(item) {
+
+                    return Number(item.id) !== Number(id);
+
+                });
+
+
+            saveCart(cart);
+
+            renderCart();
+
+        }
+
+
+        /* PLACE ORDER */
+        function placeOrder() {
+
+            const cart = getCart();
+
+
+            if (!cart.length) {
+                return;
+            }
+
+
+            /*
+             * For this demo,
+             * placing the order clears the cart.
+             */
+
+            localStorage.removeItem(CART_KEY);
+
+
+            renderCart();
+
+
+            document.getElementById(
+                "order-message"
+            ).textContent =
+                "Order placed successfully! Thank you for shopping with SmartKart.";
+
+        }
+
+
+        /* LOGOUT */
+        function logout() {
+
+            localStorage.removeItem(CART_KEY);
+
+            window.location.href =
+                "index.html";
+
+        }
+
+
+        /* LOAD CART */
+        renderCart();
+
+    </script>
+
+</body>
+</html>
