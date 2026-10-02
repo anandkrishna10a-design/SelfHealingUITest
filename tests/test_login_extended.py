@@ -25,7 +25,7 @@ def test_empty_username(page: Page):
     page.locator("#login-btn").click()
 
     expect(page.locator("#message")).to_have_text(
-        "Invalid username or password"
+        "Please enter username and password"
     )
 
 
@@ -39,7 +39,7 @@ def test_empty_password(page: Page):
     page.locator("#login-btn").click()
 
     expect(page.locator("#message")).to_have_text(
-        "Invalid username or password"
+        "Please enter username and password"
     )
 
 
@@ -52,7 +52,7 @@ def test_empty_username_and_password(page: Page):
     page.locator("#login-btn").click()
 
     expect(page.locator("#message")).to_have_text(
-        "Invalid username or password"
+        "Please enter username and password"
     )
 
 
@@ -66,3 +66,4 @@ def test_password_field_is_masked(page: Page):
         "type",
         "password"
     )
+
