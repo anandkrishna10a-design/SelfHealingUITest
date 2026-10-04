@@ -1,39 +1,99 @@
 from playwright.sync_api import Page, expect
 
+from healing.actions import self_healing_click
+
+
+# =========================================================
+# TEST 1 - SUCCESSFUL LOGIN
+# =========================================================
 
 def test_successful_login(page: Page):
 
-    # Open Test Login Page
-    page.goto("http://localhost:8080")
+    # Open SmartKart
+    page.goto(
+        "http://localhost:8080"
+    )
 
     # Enter valid credentials
-    page.locator("#username").fill("testacc")
-    page.locator("#password").fill("vs12345")
+    page.locator(
+        "#username"
+    ).fill(
+        "testacc"
+    )
 
-    # Click Login
-    page.locator("#login-btn").click()
+    page.locator(
+        "#password"
+    ).fill(
+        "vs12345"
+    )
 
-    # Verify that the Products page opened
-    expect(page).to_have_url("http://localhost:8080/products.html")
+    # -------------------------------------------------
+    # SELF-HEALING LOGIN CLICK
+    # -------------------------------------------------
 
-    # Verify welcome message
-    expect(page.locator("#welcome-message")).to_have_text(
+    self_healing_click(
+        page=page,
+        original_locator="#login-btn",
+        expected_tag="button"
+    )
+
+    # -------------------------------------------------
+    # ORIGINAL ASSERTIONS
+    # -------------------------------------------------
+
+    expect(
+        page
+    ).to_have_url(
+        "http://localhost:8080/products.html"
+    )
+
+    expect(
+        page.locator("#welcome-message")
+    ).to_have_text(
         "Welcome, testacc"
     )
 
+
+# =========================================================
+# TEST 2 - INVALID LOGIN
+# =========================================================
+
 def test_invalid_login(page: Page):
 
-    # Open HealCart
-    page.goto("http://localhost:8080")
+    # Open SmartKart
+    page.goto(
+        "http://localhost:8080"
+    )
 
     # Enter incorrect credentials
-    page.locator("#username").fill("wronguser")
-    page.locator("#password").fill("wrongpassword")
+    page.locator(
+        "#username"
+    ).fill(
+        "wronguser"
+    )
 
-    # Click Login
-    page.locator("#login-btn").click()
+    page.locator(
+        "#password"
+    ).fill(
+        "wrongpassword"
+    )
 
-    # Verify error message
-    expect(page.locator("#message")).to_have_text(
+    # -------------------------------------------------
+    # SELF-HEALING LOGIN CLICK
+    # -------------------------------------------------
+
+    self_healing_click(
+        page=page,
+        original_locator="#login-btn",
+        expected_tag="button"
+    )
+
+    # -------------------------------------------------
+    # ORIGINAL ASSERTION
+    # -------------------------------------------------
+
+    expect(
+        page.locator("#message")
+    ).to_have_text(
         "Invalid username or password"
     )
