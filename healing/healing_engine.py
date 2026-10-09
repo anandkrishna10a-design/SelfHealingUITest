@@ -1,69 +1,38 @@
+
 from healing.failure_analyzer import analyze_locator_failure
+from healing.healing_logger import record_healing_event
 
 
 MAX_HEALING_ATTEMPTS = 3
 
 
-def heal_locator(
-    page,
-    failed_locator,
-    expected_tag="button"
-):
+def heal_locator(page, failed_locator, expected_tag="button"):
     """
-    Attempts to find a safe replacement for a failed
-    Playwright locator.
+    Find and validate a replacement for a failed locator.
 
-    Ollama may make multiple attempts.
+    Ollama proposes candidates, but deterministic validation
+    decides whether they can be accepted.
 
-    Every suggestion must pass deterministic validation
-    before it can be returned.
-
-    Rejected suggestions are removed from subsequent
-    attempts so Ollama cannot repeatedly choose the
-    same incorrect element.
-
-    Returns:
-        Valid healed CSS locator
-
-    Returns None:
-        If no safe replacement is found
+    All AI suggestions and validation outcomes are logged.
     """
 
     print("\n" + "=" * 60)
     print("SELF-HEALING ENGINE ACTIVATED")
     print("=" * 60)
+    print(f"Failed locator: {failed_locator}")
 
-    print(
-        f"Failed locator: "
-        f"{failed_locator}"
-    )
-
-    # =====================================================
-    # 1. SELECT CANDIDATE ELEMENT TYPE
-    # =====================================================
+    # -------------------------------------------------
+    # SELECT CANDIDATE ELEMENTS
+    # -------------------------------------------------
 
     if expected_tag == "button":
-
         selector = "button"
-
     elif expected_tag == "input":
-
         selector = "input"
-
     else:
+        selector = "button, input, a, select, textarea"
 
-        selector = (
-            "button, input, a, "
-            "select, textarea"
-        )
-
-    # =====================================================
-    # 2. CAPTURE LIVE CANDIDATES
-    # =====================================================
-
-    elements = page.locator(
-        selector
-    ).evaluate_all(
+    elements = page.locator(selector).evaluate_all(
         """
         elements => elements.map(el => ({
             tag: el.tagName.toLowerCase(),
@@ -71,394 +40,197 @@ def heal_locator(
             name: el.getAttribute("name") || "",
             type: el.getAttribute("type") || "",
             text: (el.innerText || "").trim(),
-            placeholder:
-                el.getAttribute("placeholder") || "",
-            ariaLabel:
-                el.getAttribute("aria-label") || ""
+            placeholder: el.getAttribute("placeholder") || "",
+            ariaLabel: el.getAttribute("aria-label") || ""
         }))
         """
     )
 
     print("\nLive candidates:")
-
     for element in elements:
-
         print(element)
 
     if not elements:
+        print("No candidate elements found.")
 
-        print(
-            "\n❌ No candidate elements found."
+        record_healing_event(
+            failed_locator,
+            None,
+            0,
+            "failed",
+            "No candidate elements found"
         )
-
         return None
-
-    # =====================================================
-    # 3. TRACK REJECTED LOCATORS
-    # =====================================================
 
     rejected_locators = set()
 
-    # =====================================================
-    # 4. MULTIPLE HEALING ATTEMPTS
-    # =====================================================
+    # -------------------------------------------------
+    # MULTIPLE OLLAMA ATTEMPTS
+    # -------------------------------------------------
 
-    for attempt in range(
-        1,
-        MAX_HEALING_ATTEMPTS + 1
-    ):
+    for attempt in range(1, MAX_HEALING_ATTEMPTS + 1):
 
         print("\n" + "-" * 60)
-
-        print(
-            f"HEALING ATTEMPT "
-            f"{attempt}/{MAX_HEALING_ATTEMPTS}"
-        )
-
+        print(f"HEALING ATTEMPT {attempt}/{MAX_HEALING_ATTEMPTS}")
         print("-" * 60)
 
-        # -------------------------------------------------
-        # Remove rejected candidates
-        # -------------------------------------------------
-
-        available_elements = []
-
-        for element in elements:
-
-            element_id = element.get(
-                "id",
-                ""
-            )
-
-            css_locator = (
-                f"#{element_id}"
-                if element_id
-                else ""
-            )
-
+        available_elements = [
+            element
+            for element in elements
             if (
-                css_locator
-                not in rejected_locators
-            ):
-
-                available_elements.append(
-                    element
-                )
+                f"#{element['id']}" if element.get("id") else ""
+            ) not in rejected_locators
+        ]
 
         if not available_elements:
-
-            print(
-                "\n❌ No candidates remain "
-                "after validation."
-            )
-
+            print("No candidates remain.")
             break
 
-        print(
-            "\nCandidates available "
-            "for this attempt:"
-        )
-
+        print("\nCandidates available:")
         for element in available_elements:
-
             print(element)
 
-        # -------------------------------------------------
-        # Prepare candidate information
-        # -------------------------------------------------
-
         element_information = "\n".join(
-            str(element)
-            for element
-            in available_elements
+            str(element) for element in available_elements
         )
 
-        # -------------------------------------------------
-        # Ask Ollama
-        # -------------------------------------------------
+        print("\nSending candidates to Ollama...")
 
-        print(
-            "\nSending candidates "
-            "to Ollama..."
+        suggested_locator = analyze_locator_failure(
+            failed_locator,
+            element_information
         )
 
-        suggested_locator = (
-            analyze_locator_failure(
+        print(f"\nOllama suggested: {suggested_locator}")
+
+        # -------------------------------------------------
+        # REJECTION HELPER
+        # -------------------------------------------------
+
+        def reject(reason):
+            print(f"\nREJECTED: {reason}")
+
+            record_healing_event(
                 failed_locator,
-                element_information
+                suggested_locator,
+                attempt,
+                "rejected",
+                reason
             )
-        )
 
-        print(
-            f"\nOllama suggested: "
-            f"{suggested_locator}"
-        )
+            if suggested_locator:
+                rejected_locators.add(suggested_locator)
 
-        # =================================================
-        # 5. BASIC OUTPUT VALIDATION
-        # =================================================
+        # -------------------------------------------------
+        # BASIC OUTPUT VALIDATION
+        # -------------------------------------------------
 
         if not suggested_locator:
-
-            print(
-                "\n❌ Ollama returned "
-                "an empty locator."
-            )
-
+            reject("Ollama returned an empty locator")
             continue
 
-        if (
-            suggested_locator
-            == failed_locator
-        ):
-
-            print(
-                "\n❌ Ollama returned "
-                "the original failed locator."
-            )
-
-            rejected_locators.add(
-                suggested_locator
-            )
-
+        if suggested_locator == failed_locator:
+            reject("Ollama returned the original failed locator")
             continue
 
-        if not suggested_locator.startswith(
-            "#"
-        ):
-
-            print(
-                "\n❌ Ollama did not return "
-                "a CSS ID locator."
-            )
-
+        if not suggested_locator.startswith("#"):
+            reject("Suggestion is not a CSS ID locator")
             continue
-
-        # -------------------------------------------------
-        # Make sure Ollama selected a LIVE candidate
-        # -------------------------------------------------
 
         available_ids = {
             f"#{element['id']}"
-            for element
-            in available_elements
+            for element in available_elements
             if element.get("id")
         }
 
-        if (
-            suggested_locator
-            not in available_ids
-        ):
-
-            print(
-                "\n❌ Ollama selected a locator "
-                "that is not in the current "
-                "candidate list."
-            )
-
-            rejected_locators.add(
-                suggested_locator
-            )
-
+        if suggested_locator not in available_ids:
+            reject("Suggestion is not in the live candidate list")
             continue
 
-        # =================================================
-        # 6. CREATE PLAYWRIGHT LOCATOR
-        # =================================================
+        # -------------------------------------------------
+        # CREATE PLAYWRIGHT LOCATOR
+        # -------------------------------------------------
 
         try:
-
-            candidate = page.locator(
-                suggested_locator
-            )
-
+            candidate = page.locator(suggested_locator)
             count = candidate.count()
-
         except Exception as error:
-
-            print(
-                "\n❌ Invalid locator "
-                "returned by Ollama."
-            )
-
-            print(
-                f"Reason: {error}"
-            )
-
-            rejected_locators.add(
-                suggested_locator
-            )
-
+            reject(f"Invalid locator: {error}")
             continue
 
-        # =================================================
-        # 7. CHECK UNIQUENESS
-        # =================================================
+        # -------------------------------------------------
+        # UNIQUENESS
+        # -------------------------------------------------
 
         if count != 1:
-
-            print(
-                f"\n❌ Suggested locator "
-                f"matched {count} elements."
-            )
-
-            rejected_locators.add(
-                suggested_locator
-            )
-
+            reject(f"Locator matched {count} elements")
             continue
 
-        print(
-            "✅ Suggested locator exists."
-        )
+        print("Suggested locator exists.")
+        print("Suggested locator is unique.")
 
-        print(
-            "✅ Suggested locator is unique."
-        )
-
-        # =================================================
-        # 8. CHECK VISIBILITY
-        # =================================================
+        # -------------------------------------------------
+        # VISIBILITY
+        # -------------------------------------------------
 
         try:
-
             candidate.wait_for(
                 state="visible",
                 timeout=5000
             )
-
         except Exception:
-
-            print(
-                "\n❌ Suggested element "
-                "is not visible."
-            )
-
-            rejected_locators.add(
-                suggested_locator
-            )
-
+            reject("Suggested element is not visible")
             continue
 
-        print(
-            "✅ Suggested element is visible."
-        )
+        print("Suggested element is visible.")
 
-        # =================================================
-        # 9. INSPECT ELEMENT
-        # =================================================
+        # -------------------------------------------------
+        # INSPECT ELEMENT
+        # -------------------------------------------------
 
         try:
-
-            candidate_data = (
-                candidate.evaluate(
-                    """
-                    element => ({
-                        tag:
-                            element.tagName
-                            .toLowerCase(),
-
-                        id:
-                            element.id || "",
-
-                        text:
-                            (element.innerText || "")
-                            .trim(),
-
-                        ariaLabel:
-                            element.getAttribute(
-                                "aria-label"
-                            ) || ""
-                    })
-                    """
-                )
+            candidate_data = candidate.evaluate(
+                """
+                element => ({
+                    tag: element.tagName.toLowerCase(),
+                    id: element.id || "",
+                    text: (element.innerText || "").trim(),
+                    ariaLabel:
+                        element.getAttribute("aria-label") || ""
+                })
+                """
             )
-
         except Exception as error:
-
-            print(
-                "\n❌ Could not inspect "
-                "suggested element."
-            )
-
-            print(
-                f"Reason: {error}"
-            )
-
-            rejected_locators.add(
-                suggested_locator
-            )
-
+            reject(f"Could not inspect element: {error}")
             continue
 
-        tag_name = (
-            candidate_data["tag"]
-        )
+        tag_name = candidate_data["tag"]
 
-        visible_text = (
-            candidate_data["text"]
-            .strip()
-            .lower()
-        )
+        visible_text = candidate_data["text"].strip().lower()
+        element_id = candidate_data["id"].strip().lower()
+        aria_label = candidate_data["ariaLabel"].strip().lower()
 
-        element_id = (
-            candidate_data["id"]
-            .strip()
-            .lower()
-        )
+        # -------------------------------------------------
+        # ELEMENT TYPE
+        # -------------------------------------------------
 
-        aria_label = (
-            candidate_data["ariaLabel"]
-            .strip()
-            .lower()
-        )
-
-        # =================================================
-        # 10. CHECK ELEMENT TYPE
-        # =================================================
-
-        if (
-            expected_tag
-            and tag_name != expected_tag
-        ):
-
-            print(
-                f"\n❌ Expected "
-                f"<{expected_tag}> "
-                f"but Ollama selected "
-                f"<{tag_name}>."
+        if expected_tag and tag_name != expected_tag:
+            reject(
+                f"Expected <{expected_tag}> but got <{tag_name}>"
             )
-
-            rejected_locators.add(
-                suggested_locator
-            )
-
             continue
 
-        print(
-            f"✅ Suggested element is "
-            f"a <{tag_name}>."
-        )
+        print(f"Suggested element is a <{tag_name}>.")
 
-        # =================================================
-        # 11. SEMANTIC VALIDATION
-        # =================================================
+        # -------------------------------------------------
+        # SEMANTIC VALIDATION
+        # -------------------------------------------------
 
-        failed_lower = (
-            failed_locator.lower()
-        )
+        failed_lower = failed_locator.lower()
 
         candidate_information = (
-            visible_text
-            + " "
-            + element_id
-            + " "
-            + aria_label
+            visible_text + " " + element_id + " " + aria_label
         )
-
-        # -------------------------------------------------
-        # LOGIN / SIGN-IN
-        # -------------------------------------------------
 
         if "login" in failed_lower:
 
@@ -477,150 +249,70 @@ def heal_locator(
                 "create account"
             ]
 
-            # ---------------------------------------------
-            # Reject registration candidate
-            # ---------------------------------------------
-
             if any(
-                term
-                in candidate_information
-                for term
-                in registration_terms
+                term in candidate_information
+                for term in registration_terms
             ):
-
-                print(
-                    "\n❌ SEMANTIC "
-                    "VALIDATION FAILED"
+                reject(
+                    "Registration button selected instead of Login"
                 )
-
-                print(
-                    "Ollama selected a "
-                    "registration button "
-                    "instead of Login."
-                )
-
-                print(
-                    f"Rejected locator: "
-                    f"{suggested_locator}"
-                )
-
-                rejected_locators.add(
-                    suggested_locator
-                )
-
-                print(
-                    "\nRetrying healing "
-                    "without this candidate..."
-                )
-
                 continue
-
-            # ---------------------------------------------
-            # Require login meaning
-            # ---------------------------------------------
 
             if not any(
-                term
-                in candidate_information
-                for term
-                in login_terms
+                term in candidate_information
+                for term in login_terms
             ):
-
-                print(
-                    "\n❌ SEMANTIC "
-                    "VALIDATION FAILED"
+                reject(
+                    "Candidate does not represent Login or Sign In"
                 )
-
-                print(
-                    "Suggested element does "
-                    "not represent Login "
-                    "or Sign In."
-                )
-
-                print(
-                    f"Rejected locator: "
-                    f"{suggested_locator}"
-                )
-
-                rejected_locators.add(
-                    suggested_locator
-                )
-
                 continue
 
-            print(
-                "✅ Semantic validation passed."
-            )
+            print("Semantic validation passed.")
+            print("Candidate represents Login / Sign In.")
 
-            print(
-                "✅ Candidate represents "
-                "Login / Sign In."
-            )
+        # -------------------------------------------------
+        # ACCEPT SUGGESTION
+        # -------------------------------------------------
 
-        # =================================================
-        # 12. SUCCESS
-        # =================================================
+        print("\n" + "=" * 60)
+        print("SELF-HEALING RESULT: ACCEPTED")
+        print("=" * 60)
 
-        print(
-            "\n" + "=" * 60
-        )
+        print(f"Old locator: {failed_locator}")
+        print(f"New locator: {suggested_locator}")
+        print(f"Healing attempt: {attempt}")
 
-        print(
-            "SELF-HEALING RESULT: ACCEPTED"
-        )
-
-        print(
-            "=" * 60
-        )
-
-        print(
-            f"Old locator: "
-            f"{failed_locator}"
-        )
-
-        print(
-            f"New locator: "
-            f"{suggested_locator}"
-        )
-
-        print(
-            f"Healing attempt: "
-            f"{attempt}"
+        record_healing_event(
+            failed_locator,
+            suggested_locator,
+            attempt,
+            "accepted",
+            "Passed locator validation"
         )
 
         return suggested_locator
 
-    # =====================================================
-    # 13. ALL ATTEMPTS FAILED
-    # =====================================================
+    # -------------------------------------------------
+    # ALL ATTEMPTS FAILED
+    # -------------------------------------------------
 
-    print(
-        "\n" + "=" * 60
-    )
+    print("\n" + "=" * 60)
+    print("SELF-HEALING RESULT: FAILED")
+    print("=" * 60)
 
-    print(
-        "SELF-HEALING RESULT: FAILED"
-    )
-
-    print(
-        "=" * 60
-    )
-
-    print(
-        f"Original locator: "
-        f"{failed_locator}"
-    )
+    print(f"Original locator: {failed_locator}")
 
     if rejected_locators:
+        print("Rejected locators:")
+        for locator in sorted(rejected_locators):
+            print(f"  - {locator}")
 
-        print(
-            "Rejected locators:"
-        )
-
-        for locator in rejected_locators:
-
-            print(
-                f"  - {locator}"
-            )
+    record_healing_event(
+        failed_locator,
+        None,
+        MAX_HEALING_ATTEMPTS,
+        "failed",
+        "No valid replacement found"
+    )
 
     return None
