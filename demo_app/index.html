@@ -1,15 +1,13 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>SmartKart - Login</title>
 
     <style>
-
         * {
             margin: 0;
             padding: 0;
@@ -23,17 +21,13 @@
         }
 
         /* Header */
-
         header {
             height: 75px;
             background: rgb(78, 181, 215);
-
             display: flex;
             align-items: center;
             justify-content: space-between;
-
             padding: 0 8%;
-
             box-shadow: 0 2px 10px rgba(209, 7, 7, 0.08);
         }
 
@@ -53,44 +47,31 @@
         }
 
         /* Main page */
-
         .main-container {
             min-height: calc(100vh - 75px);
-
             display: flex;
             justify-content: center;
             align-items: center;
-
             padding: 40px;
         }
 
         .login-wrapper {
             width: 900px;
             max-width: 100%;
-
             min-height: 500px;
-
             background: rgb(15, 164, 222);
-
             border-radius: 20px;
-
             overflow: hidden;
-
             display: grid;
             grid-template-columns: 1fr 1fr;
-
             box-shadow: 0 20px 50px rgba(221, 8, 8, 0.12);
         }
 
         /* Left side */
-
         .welcome-section {
             background: linear-gradient(135deg, #09c96c, #1d4ed8);
-
             color: rgb(0, 0, 0);
-
             padding: 60px 45px;
-
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -113,10 +94,8 @@
         }
 
         /* Login section */
-
         .login-section {
             padding: 60px 50px;
-
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -142,116 +121,79 @@
 
         input {
             width: 100%;
-
             padding: 14px;
-
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-
             margin-bottom: 20px;
-
             font-size: 15px;
-
             outline: none;
         }
 
         input:focus {
             border-color: #2563eb;
-
-            box-shadow:
-                0 0 0 3px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         /* Login button */
-
-        #signin-btn {
+        #login-btn {
             width: 100%;
-
             padding: 14px;
-
             border: none;
             border-radius: 8px;
-
             background: #000000;
             color: white;
-
             font-size: 16px;
             font-weight: bold;
-
             cursor: pointer;
-
             transition: 0.2s;
         }
 
-        #signin-btn:hover {
+        #login-btn:hover {
             background: #000000;
-
             transform: translateY(-1px);
         }
 
         /* Sign Up button */
-
         #signup-btn {
             width: 100%;
-
             padding: 14px;
-
             border: none;
             border-radius: 8px;
-
             background: #2563eb;
             color: white;
-
             font-size: 16px;
             font-weight: bold;
-
             cursor: pointer;
-
             margin-top: 12px;
-
             transition: 0.2s;
         }
 
         #signup-btn:hover {
             background: #1d4ed8;
-
             transform: translateY(-1px);
         }
 
         /* Message */
-
         #message {
             margin-top: 18px;
-
             text-align: center;
-
             min-height: 20px;
-
             font-size: 14px;
         }
 
         /* Demo info */
-
         .demo-info {
             margin-top: 25px;
-
             padding: 12px;
-
             background: #000000;
-
             border-radius: 8px;
-
             color: #ffffff;
-
             font-size: 12px;
-
             text-align: center;
         }
 
         /* Mobile */
-
         @media (max-width: 700px) {
-
             header {
                 padding: 0 5%;
             }
@@ -280,19 +222,13 @@
                 padding: 40px 30px;
             }
         }
-
     </style>
-
 </head>
-
 
 <body>
 
-
     <!-- Header -->
-
     <header>
-
         <div class="logo">
             Smart<span>Kart</span>
         </div>
@@ -300,24 +236,16 @@
         <div class="header-text">
             Smart Shopping. Simple Experience.
         </div>
-
     </header>
 
-
     <!-- Main Content -->
-
     <main class="main-container">
-
         <div class="login-wrapper">
 
-
             <!-- Left Section -->
-
             <section class="welcome-section">
 
-                <h1>
-                    Welcome to SmartKart
-                </h1>
+                <h1>Welcome to SmartKart</h1>
 
                 <p>
                     Discover the latest technology products
@@ -343,22 +271,16 @@
 
             </section>
 
-
             <!-- Login Section -->
-
             <section class="login-section">
 
-                <h2>
-                    Welcome Back
-                </h2>
+                <h2>Welcome Back</h2>
 
                 <p class="login-subtitle">
                     Sign in to continue shopping.
                 </p>
 
-
                 <!-- Username -->
-
                 <label for="username">
                     Username
                 </label>
@@ -369,9 +291,7 @@
                     placeholder="Enter your username"
                 >
 
-
                 <!-- Password -->
-
                 <label for="password">
                     Password
                 </label>
@@ -382,19 +302,16 @@
                     placeholder="Enter your password"
                 >
 
-
-                <!-- Login -->
-
+                <!-- Login Button -->
+                <!-- ORIGINAL LOCATOR FOR PLAYWRIGHT -->
                 <button
-                    id="signin-btn"
+                    id="sign-in-btn"
                     onclick="login()"
                 >
                     Login
                 </button>
 
-
-                <!-- Sign Up -->
-
+                <!-- Sign Up Button -->
                 <button
                     id="signup-btn"
                     onclick="window.location.href='signup.html'"
@@ -402,14 +319,10 @@
                     Sign Up
                 </button>
 
-
                 <!-- Login message -->
-
                 <p id="message"></p>
 
-
                 <!-- Demo information -->
-
                 <div class="demo-info">
                     By Group 7
                 </div>
@@ -417,12 +330,9 @@
             </section>
 
         </div>
-
     </main>
 
-
     <script>
-
         async function login() {
 
             const username =
@@ -434,25 +344,20 @@
             const message =
                 document.getElementById("message");
 
-
             /* Validate fields */
-
             if (!username || !password) {
 
                 message.textContent =
                     "Please enter username and password";
 
-                message.style.color =
-                    "red";
+                message.style.color = "red";
 
                 return;
             }
 
-
             try {
 
                 /* Send login request */
-
                 const response =
                     await fetch("/api/login", {
 
@@ -463,21 +368,16 @@
                         },
 
                         body: JSON.stringify({
-
                             username: username,
                             password: password
-
                         })
 
                     });
 
-
                 const result =
                     await response.json();
 
-
                 /* Successful login */
-
                 if (result.success) {
 
                     localStorage.setItem(
@@ -490,16 +390,13 @@
 
                 }
 
-
                 /* Login failed */
-
                 else {
 
                     message.textContent =
                         result.message;
 
-                    message.style.color =
-                        "red";
+                    message.style.color = "red";
 
                 }
 
@@ -512,16 +409,12 @@
                 message.textContent =
                     "Unable to connect to the server";
 
-                message.style.color =
-                    "red";
+                message.style.color = "red";
 
             }
 
         }
-
     </script>
 
-
 </body>
-
 </html>
