@@ -1,36 +1,48 @@
-
 from healing.failure_analyzer import analyze_locator_failure
 from healing.healing_logger import record_healing_event
 
 
 MAX_HEALING_ATTEMPTS = 3
 
+SUPPORTED_TAGS = {
+    "button",
+    "input",
+    "a",
+    "select",
+    "textarea",
+}
+
+ALL_CANDIDATE_TAGS = "button, input, a, select, textarea"
+
 
 def heal_locator(page, failed_locator, expected_tag="button"):
     """
     Find and validate a replacement for a failed locator.
 
-    Ollama proposes candidates, but deterministic validation
-    decides whether they can be accepted.
+    Ollama suggests a replacement, but deterministic checks
+    decide whether the locator is safe to accept.
 
-    All AI suggestions and validation outcomes are logged.
+    Supported candidate elements:
+        button, input, a, select, textarea
+
+    Only unique, visible elements with a matching live ID
+    can be accepted.
     """
 
     print("\n" + "=" * 60)
     print("SELF-HEALING ENGINE ACTIVATED")
     print("=" * 60)
     print(f"Failed locator: {failed_locator}")
+    print(f"Expected element: {expected_tag or 'any supported tag'}")
 
     # -------------------------------------------------
-    # SELECT CANDIDATE ELEMENTS
+    # 1. SELECT CANDIDATE ELEMENTS
     # -------------------------------------------------
 
-    if expected_tag == "button":
-        selector = "button"
-    elif expected_tag == "input":
-        selector = "input"
+    if expected_tag in SUPPORTED_TAGS:
+        selector = expected_tag
     else:
-        selector = "button, input, a, select, textarea"
+        selector = ALL_CANDIDATE_TAGS
 
     elements = page.locator(selector).evaluate_all(
         """
@@ -40,8 +52,10 @@ def heal_locator(page, failed_locator, expected_tag="button"):
             name: el.getAttribute("name") || "",
             type: el.getAttribute("type") || "",
             text: (el.innerText || "").trim(),
+            value: el.value || "",
             placeholder: el.getAttribute("placeholder") || "",
-            ariaLabel: el.getAttribute("aria-label") || ""
+            ariaLabel: el.getAttribute("aria-label") || "",
+            role: el.getAttribute("role") || ""
         }))
         """
     )
@@ -62,10 +76,12 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         )
         return None
 
+    # Keep track of rejected suggestions to avoid
+    # repeatedly trying the same invalid locator.
     rejected_locators = set()
 
     # -------------------------------------------------
-    # MULTIPLE OLLAMA ATTEMPTS
+    # 2. ASK OLLAMA FOR REPLACEMENTS
     # -------------------------------------------------
 
     for attempt in range(1, MAX_HEALING_ATTEMPTS + 1):
@@ -77,9 +93,8 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         available_elements = [
             element
             for element in elements
-            if (
-                f"#{element['id']}" if element.get("id") else ""
-            ) not in rejected_locators
+            if element.get("id")
+            and f"#{element['id']}" not in rejected_locators
         ]
 
         if not available_elements:
@@ -104,7 +119,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         print(f"\nOllama suggested: {suggested_locator}")
 
         # -------------------------------------------------
-        # REJECTION HELPER
+        # 3. REJECTION HELPER
         # -------------------------------------------------
 
         def reject(reason):
@@ -122,7 +137,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
                 rejected_locators.add(suggested_locator)
 
         # -------------------------------------------------
-        # BASIC OUTPUT VALIDATION
+        # 4. VALIDATE MODEL OUTPUT
         # -------------------------------------------------
 
         if not suggested_locator:
@@ -140,7 +155,6 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         available_ids = {
             f"#{element['id']}"
             for element in available_elements
-            if element.get("id")
         }
 
         if suggested_locator not in available_ids:
@@ -148,7 +162,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
             continue
 
         # -------------------------------------------------
-        # CREATE PLAYWRIGHT LOCATOR
+        # 5. CHECK LOCATOR UNIQUENESS
         # -------------------------------------------------
 
         try:
@@ -158,10 +172,6 @@ def heal_locator(page, failed_locator, expected_tag="button"):
             reject(f"Invalid locator: {error}")
             continue
 
-        # -------------------------------------------------
-        # UNIQUENESS
-        # -------------------------------------------------
-
         if count != 1:
             reject(f"Locator matched {count} elements")
             continue
@@ -170,7 +180,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         print("Suggested locator is unique.")
 
         # -------------------------------------------------
-        # VISIBILITY
+        # 6. CHECK VISIBILITY
         # -------------------------------------------------
 
         try:
@@ -185,7 +195,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         print("Suggested element is visible.")
 
         # -------------------------------------------------
-        # INSPECT ELEMENT
+        # 7. INSPECT THE SELECTED ELEMENT
         # -------------------------------------------------
 
         try:
@@ -194,9 +204,15 @@ def heal_locator(page, failed_locator, expected_tag="button"):
                 element => ({
                     tag: element.tagName.toLowerCase(),
                     id: element.id || "",
+                    name: element.getAttribute("name") || "",
+                    type: element.getAttribute("type") || "",
                     text: (element.innerText || "").trim(),
+                    value: element.value || "",
+                    placeholder:
+                        element.getAttribute("placeholder") || "",
                     ariaLabel:
-                        element.getAttribute("aria-label") || ""
+                        element.getAttribute("aria-label") || "",
+                    role: element.getAttribute("role") || ""
                 })
                 """
             )
@@ -206,15 +222,10 @@ def heal_locator(page, failed_locator, expected_tag="button"):
 
         tag_name = candidate_data["tag"]
 
-        visible_text = candidate_data["text"].strip().lower()
-        element_id = candidate_data["id"].strip().lower()
-        aria_label = candidate_data["ariaLabel"].strip().lower()
-
-        # -------------------------------------------------
-        # ELEMENT TYPE
-        # -------------------------------------------------
-
-        if expected_tag and tag_name != expected_tag:
+        if (
+            expected_tag in SUPPORTED_TAGS
+            and tag_name != expected_tag
+        ):
             reject(
                 f"Expected <{expected_tag}> but got <{tag_name}>"
             )
@@ -223,30 +234,43 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         print(f"Suggested element is a <{tag_name}>.")
 
         # -------------------------------------------------
-        # SEMANTIC VALIDATION
+        # 8. SEMANTIC VALIDATION FOR LOGIN BUTTONS/LINKS
         # -------------------------------------------------
 
         failed_lower = failed_locator.lower()
 
-        candidate_information = (
-            visible_text + " " + element_id + " " + aria_label
-        )
+        # Preserve the login-vs-registration protection
+        # for button and link actions. Do not apply these
+        # rules to username/password input fields.
+        if (
+            "login" in failed_lower
+            and tag_name in ("button", "a")
+        ):
+            visible_text = candidate_data["text"].lower()
+            element_id = candidate_data["id"].lower()
+            aria_label = candidate_data["ariaLabel"].lower()
+            role = candidate_data["role"].lower()
 
-        if "login" in failed_lower:
-
-            login_terms = [
-                "login",
-                "log in",
-                "signin",
-                "sign in"
-            ]
+            candidate_information = " ".join([
+                visible_text,
+                element_id,
+                aria_label,
+                role,
+            ])
 
             registration_terms = [
                 "signup",
                 "sign up",
                 "register",
                 "registration",
-                "create account"
+                "create account",
+            ]
+
+            login_terms = [
+                "login",
+                "log in",
+                "signin",
+                "sign in",
             ]
 
             if any(
@@ -254,7 +278,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
                 for term in registration_terms
             ):
                 reject(
-                    "Registration button selected instead of Login"
+                    "Registration element selected instead of Login"
                 )
                 continue
 
@@ -271,7 +295,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
             print("Candidate represents Login / Sign In.")
 
         # -------------------------------------------------
-        # ACCEPT SUGGESTION
+        # 9. ACCEPT THE REPLACEMENT
         # -------------------------------------------------
 
         print("\n" + "=" * 60)
@@ -293,7 +317,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         return suggested_locator
 
     # -------------------------------------------------
-    # ALL ATTEMPTS FAILED
+    # 10. ALL ATTEMPTS FAILED
     # -------------------------------------------------
 
     print("\n" + "=" * 60)
