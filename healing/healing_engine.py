@@ -1,3 +1,4 @@
+
 from healing.failure_analyzer import analyze_locator_failure
 from healing.healing_logger import record_healing_event
 
@@ -19,10 +20,10 @@ def heal_locator(page, failed_locator, expected_tag="button"):
     """
     Find and validate a replacement for a failed locator.
 
-    Ollama suggests a replacement, but deterministic checks
-    decide whether the locator is safe to accept.
+    Ollama proposes candidates, but deterministic validation
+    decides whether the locator is safe to accept.
 
-    Supported candidate elements:
+    Supported elements:
         button, input, a, select, textarea
 
     Only unique, visible elements with a matching live ID
@@ -72,12 +73,10 @@ def heal_locator(page, failed_locator, expected_tag="button"):
             None,
             0,
             "failed",
-            "No candidate elements found"
+            "No candidate elements found",
         )
         return None
 
-    # Keep track of rejected suggestions to avoid
-    # repeatedly trying the same invalid locator.
     rejected_locators = set()
 
     # -------------------------------------------------
@@ -113,7 +112,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
 
         suggested_locator = analyze_locator_failure(
             failed_locator,
-            element_information
+            element_information,
         )
 
         print(f"\nOllama suggested: {suggested_locator}")
@@ -130,7 +129,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
                 suggested_locator,
                 attempt,
                 "rejected",
-                reason
+                reason,
             )
 
             if suggested_locator:
@@ -186,7 +185,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         try:
             candidate.wait_for(
                 state="visible",
-                timeout=5000
+                timeout=5000,
             )
         except Exception:
             reject("Suggested element is not visible")
@@ -234,14 +233,63 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         print(f"Suggested element is a <{tag_name}>.")
 
         # -------------------------------------------------
-        # 8. SEMANTIC VALIDATION FOR LOGIN BUTTONS/LINKS
+        # 8. SEMANTIC VALIDATION FOR INPUT FIELDS
+        # -------------------------------------------------
+
+        if tag_name == "input":
+
+            input_information = " ".join([
+                candidate_data.get("id", ""),
+                candidate_data.get("name", ""),
+                candidate_data.get("placeholder", ""),
+                candidate_data.get("ariaLabel", ""),
+                candidate_data.get("type", ""),
+            ]).lower()
+
+            failed_lower = failed_locator.lower()
+
+            if "search" in failed_lower:
+                if not any(
+                    term in input_information
+                    for term in ("search", "query", "product")
+                ):
+                    reject(
+                        "Candidate does not appear to be a search input"
+                    )
+                    continue
+
+            elif (
+                "username" in failed_lower
+                or "user-name" in failed_lower
+            ):
+                if not any(
+                    term in input_information
+                    for term in (
+                        "username",
+                        "user-name",
+                        "user_name",
+                    )
+                ):
+                    reject(
+                        "Candidate does not appear to be a username input"
+                    )
+                    continue
+
+            elif "password" in failed_lower:
+                if "password" not in input_information:
+                    reject(
+                        "Candidate does not appear to be a password input"
+                    )
+                    continue
+
+            print("Input semantic validation passed.")
+
+        # -------------------------------------------------
+        # 9. SEMANTIC VALIDATION FOR LOGIN BUTTONS/LINKS
         # -------------------------------------------------
 
         failed_lower = failed_locator.lower()
 
-        # Preserve the login-vs-registration protection
-        # for button and link actions. Do not apply these
-        # rules to username/password input fields.
         if (
             "login" in failed_lower
             and tag_name in ("button", "a")
@@ -295,7 +343,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
             print("Candidate represents Login / Sign In.")
 
         # -------------------------------------------------
-        # 9. ACCEPT THE REPLACEMENT
+        # 10. ACCEPT THE REPLACEMENT
         # -------------------------------------------------
 
         print("\n" + "=" * 60)
@@ -311,13 +359,13 @@ def heal_locator(page, failed_locator, expected_tag="button"):
             suggested_locator,
             attempt,
             "accepted",
-            "Passed locator validation"
+            "Passed locator validation",
         )
 
         return suggested_locator
 
     # -------------------------------------------------
-    # 10. ALL ATTEMPTS FAILED
+    # 11. ALL ATTEMPTS FAILED
     # -------------------------------------------------
 
     print("\n" + "=" * 60)
@@ -336,7 +384,7 @@ def heal_locator(page, failed_locator, expected_tag="button"):
         None,
         MAX_HEALING_ATTEMPTS,
         "failed",
-        "No valid replacement found"
+        "No valid replacement found",
     )
 
     return None
