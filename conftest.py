@@ -154,7 +154,7 @@ def pytest_runtest_makereport(item, call):
 
 
 # -------------------------------------------------
-# SESSION COMPLETION
+# SESSION COMPLETION AND DIAGNOSTIC REPORTS
 # -------------------------------------------------
 
 def pytest_sessionfinish(session, exitstatus):
@@ -168,6 +168,7 @@ def pytest_sessionfinish(session, exitstatus):
     if report_folder is None:
         return
 
+    # Finish the execution log before processing it.
     log_file = report_folder / "execution.log"
 
     with log_file.open("a", encoding="utf-8") as log:
@@ -179,3 +180,29 @@ def pytest_sessionfinish(session, exitstatus):
 
     print("\nSMARTKART TEST EXECUTION COMPLETED")
     print(f"Reports saved in: {report_folder}")
+
+    # Generate detailed diagnostic reports.
+    try:
+        from healing.report_generator import generate_report
+
+        generate_report(report_folder)
+
+    except Exception as error:
+        print("\nWARNING: Diagnostic report generation failed.")
+        print(f"Reason: {error}")
+        print(f"Raw execution logs remain in: {report_folder}")
+
+    # Automatically generate the simplified HTML report.
+    try:
+        from healing.html_report import generate_html_report
+
+        html_path = generate_html_report(report_folder)
+
+        print("\nHTML REPORT GENERATED SUCCESSFULLY")
+        print(f"HTML report: {html_path}")
+
+    except Exception as error:
+        # Keep the test results even if HTML generation fails.
+        print("\nWARNING: HTML report generation failed.")
+        print(f"Reason: {error}")
+        print(f"Raw reports remain in: {report_folder}")

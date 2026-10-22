@@ -128,10 +128,11 @@ def event_reason(event) -> str:
 
 def parse_execution_log(report_dir: Path) -> dict:
     """
-    Parse pytest execution.log when available.
+    Parse the custom pytest execution log.
 
-    Returns test outcomes and failure tracebacks without assuming
-    that every report directory contains an execution log.
+    Each test is counted once, using its call phase as the final test
+    outcome. Setup and teardown failures are retained as test errors.
+    Conventional pytest FAILED/ERROR summary lines are also supported.
     """
 
     log_file = report_dir / "execution.log"
@@ -149,7 +150,10 @@ def parse_execution_log(report_dir: Path) -> dict:
         return result
 
     try:
-        log_text = log_file.read_text(encoding="utf-8", errors="replace")
+        log_text = log_file.read_text(
+            encoding="utf-8",
+            errors="replace",
+        )
     except OSError as error:
         result["errors"].append(
             f"Could not read execution.log: {error}"
@@ -158,41 +162,130 @@ def parse_execution_log(report_dir: Path) -> dict:
 
     result["raw_text"] = log_text
 
+    # Custom hook records are grouped by test node ID and phase.
+    phase_records = {}
+    current_test = None
+    current_phase = None
     current_failure = None
     traceback_lines = []
+
+    def save_traceback():
+        nonlocal current_failure, traceback_lines
+
+        if current_failure and traceback_lines:
+            result["tracebacks"][current_failure] = "\n".join(
+                traceback_lines
+            )
+
+        current_failure = None
+        traceback_lines = []
 
     for line in log_text.splitlines():
         stripped = line.strip()
 
-        # Collect traceback text when pytest marks a test as failed.
-        if stripped.startswith("FAILED ") or stripped.startswith("ERROR "):
-            if current_failure and traceback_lines:
-                result["tracebacks"][current_failure] = "\n".join(
-                    traceback_lines
+        # Start of a custom pytest hook record.
+        if stripped.startswith("Test:"):
+            save_traceback()
+            current_test = stripped[len("Test:"):].strip()
+            current_phase = None
+            continue
+
+        if stripped.startswith("Phase:"):
+            current_phase = stripped[len("Phase:"):].strip().lower()
+            continue
+
+        if stripped.startswith("Result:") and current_test:
+            status = stripped[len("Result:"):].strip().upper()
+
+            phase_records.setdefault(
+                current_test,
+                {},
+            )[current_phase or "unknown"] = status
+
+            # Keep failure information for non-passing phases.
+            if status in {"FAILED", "ERROR"}:
+                failure_key = (
+                    f"{current_test} ({current_phase or 'unknown'})"
                 )
+                result["tracebacks"].setdefault(
+                    failure_key,
+                    "",
+                )
+            continue
+
+        # Capture conventional pytest summary entries as well.
+        if stripped.startswith("FAILED ") or stripped.startswith("ERROR "):
+            save_traceback()
 
             current_failure = stripped
             traceback_lines = [line]
-            result["failed" if stripped.startswith("FAILED ") else "errors"].append(
-                stripped
+
+            collection = (
+                result["failed"]
+                if stripped.startswith("FAILED ")
+                else result["errors"]
             )
+
+            if stripped not in collection:
+                collection.append(stripped)
+
             continue
 
         if current_failure is not None:
             traceback_lines.append(line)
 
-        # Capture simple pytest progress tokens where present.
+        # Support conventional pytest progress tokens if present.
         match = re.search(
             r"(?P<test>[A-Za-z_][\w.:/\[\]-]*)\s+PASSED\b",
             stripped,
         )
-        if match:
-            result["passed"].append(match.group("test"))
 
-    if current_failure and traceback_lines:
-        result["tracebacks"][current_failure] = "\n".join(
-            traceback_lines
-        )
+        if match:
+            test_name = match.group("test")
+            if test_name not in result["passed"]:
+                result["passed"].append(test_name)
+
+    save_traceback()
+
+    # Convert custom phase records into unique test outcomes.
+    for test_name, phases in phase_records.items():
+        call_status = phases.get("call")
+
+        # A call phase determines the test's pass/fail result.
+        if call_status == "PASSED":
+            result["passed"].append(test_name)
+        elif call_status in {"FAILED", "ERROR"}:
+            result["failed"].append(
+                f"{test_name} (call phase: {call_status})"
+            )
+        elif call_status is None:
+            # A setup error may prevent the test body from running.
+            if phases.get("setup") in {"FAILED", "ERROR"}:
+                result["errors"].append(
+                    f"{test_name} (setup phase: "
+                    f"{phases['setup']})"
+                )
+            elif phases.get("teardown") in {"FAILED", "ERROR"}:
+                result["errors"].append(
+                    f"{test_name} (teardown phase: "
+                    f"{phases['teardown']})"
+                )
+
+        # Keep teardown/setup problems visible even when the call phase
+        # itself passed. Avoid duplicating the same error entry.
+        for phase in ("setup", "teardown"):
+            status = phases.get(phase)
+
+            if status in {"FAILED", "ERROR"}:
+                error_entry = (
+                    f"{test_name} ({phase} phase: {status})"
+                )
+                if error_entry not in result["errors"]:
+                    result["errors"].append(error_entry)
+
+    # Deduplicate outcomes while preserving their original order.
+    for key in ("passed", "failed", "errors"):
+        result[key] = list(dict.fromkeys(result[key]))
 
     return result
 
@@ -532,6 +625,9 @@ def generate_report(report_dir: Path) -> None:
     print("Consolidated diagnostic report generated successfully.")
     print(f"Report directory: {report_dir}")
     print(f"Healing events processed: {len(events)}")
+    print(f"Passed tests detected: {len(execution['passed'])}")
+    print(f"Failed tests detected: {len(execution['failed'])}")
+    print(f"Test errors detected: {len(execution['errors'])}")
     print(f"Summary saved to: {summary_file}")
     print(f"Diagnoses saved to: {report_dir / 'diagnostics.json'}")
 
