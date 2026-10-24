@@ -1,461 +1,174 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privileged User Control</title>
-
+    <title>Privileged Access Control</title>
     <style>
         * { box-sizing: border-box; }
-
         body {
-            margin: 0;
-            min-height: 100vh;
-            padding: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: "Segoe UI", Arial, sans-serif;
-            color: #172033;
-            background: linear-gradient(135deg, #11132f, #51075b);
+            margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #172033;
+            min-height: 100vh; background: linear-gradient(135deg, #11132f, #51075b);
+            display: flex; align-items: center; justify-content: center; padding: 24px;
         }
-
-        .hidden { display: none !important; }
-
         .login-card {
-            width: 100%;
-            max-width: 520px;
-            padding: 40px;
-            background: white;
-            border: 1px solid #dce5ef;
-            border-radius: 22px;
-            box-shadow: 0 18px 50px rgba(0,0,0,.2);
+            width: 100%; max-width: 520px; background: #fff; border: 1px solid #dce5ef;
+            border-radius: 22px; padding: 40px; box-shadow: 0 18px 50px rgba(0,0,0,.2);
         }
-
         .icon-box {
-            width: 68px;
-            height: 68px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 18px;
-            background: #eeeaff;
-            font-size: 32px;
+            width: 68px; height: 68px; border-radius: 18px; background: #eeeaff;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 24px; font-size: 32px;
         }
-
-        h1 { margin: 0 0 12px; font-size: 28px; }
+        h1 { font-size: 28px; margin: 0 0 12px; }
         h2 { font-size: 20px; }
-        .subtitle { margin-bottom: 30px; color: #71809a; line-height: 1.7; }
+        .subtitle { color: #71809a; margin-bottom: 30px; line-height: 1.7; }
         .form-group { margin-bottom: 22px; }
-
-        label {
-            display: block;
-            margin-bottom: 9px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 9px; }
         input {
-            width: 100%;
-            padding: 15px;
-            border: 1px solid #d4dfef;
-            border-radius: 11px;
-            background: #e8efff;
-            color: #172033;
-            font-size: 15px;
+            width: 100%; padding: 15px; border: 1px solid #d4dfef; border-radius: 11px;
+            background: #e8efff; color: #172033; font-size: 15px;
         }
-
         button {
-            padding: 14px 18px;
-            border: none;
-            border-radius: 10px;
-            background: #5145e5;
-            color: white;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
+            border: none; border-radius: 10px; background: #5145e5; color: white;
+            padding: 14px 18px; font-size: 15px; font-weight: 700; cursor: pointer;
         }
-
         button:hover { background: #4035cc; }
         button:disabled { opacity: .7; cursor: wait; }
         .small-button { width: auto; }
-
-        .message {
-            margin-top: 16px;
-            padding: 13px;
-            border-radius: 9px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
+        .hidden { display: none !important; }
+        .message { margin-top: 16px; padding: 13px; border-radius: 9px; font-size: 14px; line-height: 1.5; }
         .error { background: #fff0f0; color: #b42332; }
         .success { background: #e8f8ee; color: #16764f; }
-
         #dashboardPage {
-            width: 100%;
-            max-width: 1150px;
-            padding: 30px;
-            border-radius: 18px;
-            background: white;
-            box-shadow: 0 18px 50px rgba(0,0,0,.2);
+            width: 100%; max-width: 1150px; background: #fff; border-radius: 18px;
+            padding: 30px; box-shadow: 0 18px 50px rgba(0,0,0,.2);
         }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 25px;
-        }
-
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 25px; }
         .dashboard-header h1 { font-size: 27px; }
-        .dashboard-header p { margin-bottom: 0; color: #71809a; }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 15px;
-            margin: 24px 0;
-        }
-
-        .stat-card {
-            padding: 18px;
-            border: 1px solid #dce5ef;
-            border-radius: 12px;
-        }
-
-        .stat-card p {
-            margin: 0 0 10px;
-            color: #71809a;
-            font-size: 13px;
-        }
-
+        .dashboard-header p { color: #71809a; margin-bottom: 0; }
+        .stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 15px; margin: 24px 0; }
+        .stat-card { border: 1px solid #dce5ef; border-radius: 12px; padding: 18px; }
+        .stat-card p { color: #71809a; font-size: 13px; margin: 0 0 10px; }
         .stat-card strong { font-size: 28px; }
-
-        .dashboard-section {
-            margin-top: 20px;
-            overflow: visible;
-            border: 1px solid #dce5ef;
-            border-radius: 12px;
-        }
-
+        .dashboard-section { border: 1px solid #dce5ef; border-radius: 12px; margin-top: 20px; overflow: visible; }
+        .dashboard-section > .section-header:first-child { border-radius: 12px 12px 0 0; }
         .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 17px 20px;
-            border-bottom: 1px solid #dce5ef;
-            border-radius: 12px 12px 0 0;
-            background: #f4f6fc;
+            padding: 17px 20px; background: #f4f6fc; border-bottom: 1px solid #dce5ef;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
         }
-
-        .section-header h2 { margin: 0; font-size: 18px; }
+        .section-header h2 { font-size: 18px; margin: 0; }
         .section-body { padding: 18px 20px; color: #71809a; }
         .section-body p { overflow-wrap: anywhere; }
-
-        .history-filters {
-            padding: 18px 20px;
-            border-bottom: 1px solid #dce5ef;
-        }
-
-        .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            align-items: end;
-            gap: 14px;
-        }
-
-        .filter-field label {
-            margin-bottom: 7px;
-            color: #475569;
-            font-size: 12px;
-        }
-
-        .picker-wrap, .time-picker { position: relative; min-width: 0; }
-
-        .picker-wrap .picker-icon {
-            position: absolute;
-            top: 50%;
-            left: 11px;
-            transform: translateY(-50%);
-            pointer-events: none;
-            font-size: 16px;
-        }
-
+        .history-filters { padding: 18px 20px; background: #fff; border-bottom: 1px solid #dce5ef; }
+        .filter-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; align-items: end; }
+        .filter-field label { margin-bottom: 7px; color: #475569; font-size: 12px; }
+        .picker-wrap { position: relative; }
+        .picker-wrap .picker-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 16px; }
         .filter-field input {
-            min-width: 0;
-            min-height: 41px;
-            padding: 10px 9px 10px 34px;
-            border: 1px solid #d4dfef;
-            border-radius: 8px;
-            background: #f8faff;
-            color: #172033;
-            font: inherit;
-            font-size: 13px;
-            color-scheme: light;
+            width: 100%; min-width: 0; padding: 10px 9px 10px 34px; border: 1px solid #d4dfef;
+            border-radius: 8px; background: #f8faff; color: #172033; font: inherit; font-size: 13px;
+            min-height: 41px; color-scheme: light;
         }
-
-        .filter-field input:focus, .time-display:focus {
-            outline: 2px solid #c7c2ff;
-            border-color: #5145e5;
-        }
-
+        .filter-field input:focus, .time-display:focus { outline: 2px solid #c7c2ff; border-color: #5145e5; }
+        .time-picker { position: relative; min-width: 0; }
         .time-display {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-            min-height: 41px;
-            padding: 9px 10px;
-            border: 1px solid #d4dfef;
-            border-radius: 8px;
-            background: #f8faff;
-            color: #172033;
-            font: inherit;
-            font-size: 13px;
-            font-weight: 400;
-            text-align: left;
+            width: 100%; min-height: 41px; display: flex; align-items: center; gap: 8px;
+            padding: 9px 10px; border: 1px solid #d4dfef; border-radius: 8px;
+            background: #f8faff; color: #172033; font: inherit; font-size: 13px;
+            font-weight: 400; text-align: left;
         }
-
         .time-display:hover { background: #f0efff; }
-        .clock-symbol { flex-shrink: 0; font-size: 16px; }
-        .time-value { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .clock-symbol { font-size: 16px; flex-shrink: 0; }
+        .time-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .dropdown-arrow { margin-left: auto; color: #64748b; }
-
         .time-popup {
-            position: absolute;
-            z-index: 100;
-            top: calc(100% + 7px);
-            left: 0;
-            width: 230px;
-            max-width: calc(100vw - 40px);
-            padding: 13px;
-            border: 1px solid #dce5ef;
-            border-radius: 12px;
-            background: white;
-            box-shadow: 0 12px 32px rgba(15,23,42,.18);
+            position: absolute; top: calc(100% + 7px); left: 0; z-index: 100; width: 230px;
+            max-width: calc(100vw - 40px); padding: 13px; background: #fff;
+            border: 1px solid #dce5ef; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,23,42,.18);
         }
-
-        .time-popup-title {
-            margin: 0 0 12px;
-            color: #334155;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .time-selectors {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 7px;
-        }
-
-        .time-selector label {
-            margin: 0 0 5px;
-            color: #64748b;
-            font-size: 10px;
-            text-align: center;
-        }
-
+        .time-popup-title { margin: 0 0 12px; font-size: 13px; font-weight: 700; color: #334155; }
+        .time-selectors { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+        .time-selector label { margin: 0 0 5px; font-size: 10px; color: #64748b; text-align: center; }
         .time-selector select {
-            width: 100%;
-            height: 39px;
-            padding: 4px 2px;
-            border: 1px solid #d4dfef;
-            border-radius: 7px;
-            background: #f8faff;
-            color: #172033;
-            font-size: 13px;
-            text-align: center;
-            cursor: pointer;
+            display: block; width: 100%; height: 39px; padding: 4px 2px; border: 1px solid #d4dfef;
+            border-radius: 7px; background: #f8faff; color: #172033; font-size: 13px; text-align: center; cursor: pointer;
         }
-
-        .time-selector select:focus {
-            outline: 2px solid #c7c2ff;
-            border-color: #5145e5;
-        }
-
-        .time-popup-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 7px;
-            margin-top: 12px;
-        }
-
+        .time-selector select:focus { outline: 2px solid #c7c2ff; border-color: #5145e5; }
+        .time-popup-footer { display: flex; justify-content: flex-end; gap: 7px; margin-top: 12px; }
         .time-popup-footer button { padding: 8px 12px; font-size: 12px; }
         .time-popup-footer .time-cancel { background: #f1f5f9; color: #475569; }
         .time-popup-footer .time-cancel:hover { background: #e2e8f0; }
-
-        .filter-actions {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 16px;
-        }
-
+        .filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
         .filter-actions button { padding: 10px 16px; font-size: 13px; }
-
-        .clear-button {
-            border: 1px solid #d4dfef;
-            background: white;
-            color: #475569;
-        }
-
+        .clear-button { background: #fff; color: #475569; border: 1px solid #d4dfef; }
         .clear-button:hover { background: #f1f5f9; }
-        .filter-result { margin-left: auto; color: #64748b; font-size: 12px; }
-        .filter-error { margin: 12px 0 0; color: #b42332; font-size: 13px; }
-
-        .progress-section {
-            margin-top: 22px;
-            padding: 22px;
-            border: 1px solid #dce5ef;
-            border-radius: 14px;
-            background: #fbfcff;
-        }
-
-        .progress-heading {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
+        .filter-result { color: #64748b; font-size: 12px; margin-left: auto; }
+        .filter-error { color: #b42332; font-size: 13px; margin: 12px 0 0; }
+        .progress-section { margin-top: 22px; padding: 22px; border: 1px solid #dce5ef; border-radius: 14px; background: #fbfcff; }
+        .progress-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
         .progress-heading h3 { margin: 0; font-size: 17px; }
-        .progress-percent { color: #5145e5; font-size: 25px; font-weight: 750; }
-
-        .status-line {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            margin-bottom: 15px;
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .status-dot {
-            width: 9px;
-            height: 9px;
-            flex: 0 0 9px;
-            border-radius: 50%;
-            background: #94a3b8;
-        }
-
+        .progress-percent { font-size: 25px; font-weight: 750; color: #5145e5; }
+        .status-line { display: flex; align-items: center; gap: 9px; margin-bottom: 15px; color: #64748b; font-size: 14px; }
+        .status-dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: #94a3b8; }
         .status-dot.running { background: #5145e5; animation: pulse 1.3s infinite; }
         .status-dot.completed { background: #16a34a; }
         .status-dot.failed { background: #dc2626; }
-
         @keyframes pulse { 50% { opacity: .35; } }
-
-        .progress-track {
-            width: 100%;
-            height: 13px;
-            overflow: hidden;
-            border-radius: 999px;
-            background: #e7eaf3;
-        }
-
-        .progress-fill {
-            width: 0;
-            height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #5145e5, #9b46d7);
-            transition: width .35s ease;
-        }
-
-        .progress-fill.indeterminate {
-            width: 35%;
-            animation: loading 1.4s ease-in-out infinite;
-        }
-
+        .progress-track { width: 100%; height: 13px; overflow: hidden; border-radius: 999px; background: #e7eaf3; }
+        .progress-fill { width: 0; height: 100%; border-radius: 999px; background: linear-gradient(90deg,#5145e5,#9b46d7); transition: width .35s ease; }
+        .progress-fill.indeterminate { width: 35%; animation: loading 1.4s ease-in-out infinite; }
         .progress-fill.completed { background: #16a34a; }
         .progress-fill.failed { background: #dc2626; }
-
-        @keyframes loading {
-            from { transform: translateX(-110%); }
-            to { transform: translateX(310%); }
-        }
-
-        .progress-counts {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .progress-count { padding: 12px; border-radius: 10px; background: #f1f3fa; }
-        .progress-count span { display: block; margin-bottom: 7px; color: #71809a; font-size: 12px; }
+        @keyframes loading { from { transform: translateX(-110%); } to { transform: translateX(310%); } }
+        .progress-counts { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; margin-top: 20px; }
+        .progress-count { padding: 12px; background: #f1f3fa; border-radius: 10px; }
+        .progress-count span { display: block; color: #71809a; font-size: 12px; margin-bottom: 7px; }
         .progress-count strong { font-size: 20px; }
-
-        .current-test {
-            margin-top: 18px;
-            padding: 13px;
-            overflow-wrap: anywhere;
-            border-radius: 9px;
-            background: #f4f6fc;
-            color: #64748b;
-            font-size: 13px;
-        }
-
+        .current-test { margin-top: 18px; padding: 13px; background: #f4f6fc; border-radius: 9px; font-size: 13px; color: #64748b; overflow-wrap: anywhere; }
         .current-test strong { color: #172033; }
-
         .table-container { overflow-x: auto; border-radius: 0 0 12px 12px; }
         .history-table { width: 100%; border-collapse: collapse; }
-
-        .history-table th, .history-table td {
-            padding: 13px;
-            border-bottom: 1px solid #edf0f6;
-            font-size: 13px;
-            text-align: left;
-            white-space: nowrap;
-        }
-
+        .history-table th, .history-table td { padding: 13px; text-align: left; border-bottom: 1px solid #edf0f6; font-size: 13px; white-space: nowrap; }
         .history-table th { background: #f8f9fc; color: #64748b; }
+        .pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; padding: 16px 12px; border-top: 1px solid #edf0f6; }
+        .pagination button { min-width: 38px; padding: 9px 12px; border: 1px solid #d4dfef; border-radius: 8px; background: #fff; color: #475569; font-size: 13px; }
+        .pagination button:hover:not(:disabled) { background: #f0efff; color: #4035cc; }
+        .pagination button.active { border-color: #5145e5; background: #5145e5; color: #fff; }
+        .pagination button:disabled { opacity: .45; cursor: not-allowed; }
+        .pagination-info { width: 100%; margin-top: 3px; color: #64748b; font-size: 12px; text-align: center; }
         a { color: #5145e5; font-weight: 600; text-decoration: none; }
         a:hover { text-decoration: underline; }
-
         @media (max-width: 800px) {
-            .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .progress-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .progress-counts { grid-template-columns: repeat(3,minmax(0,1fr)); }
+            .filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
         }
-
         @media (max-width: 500px) {
             body { padding: 12px; }
             #dashboardPage { padding: 20px 14px; }
             .login-card { padding: 28px 22px; }
             .dashboard-header { align-items: flex-start; flex-direction: column; }
-            .progress-counts, .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .progress-counts, .filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .filter-grid { grid-template-columns: 1fr; }
             .filter-result { width: 100%; margin-left: 0; }
         }
     </style>
 </head>
-
 <body>
     <section id="loginPage" class="login-card">
         <div class="icon-box" aria-hidden="true">🛡️</div>
-        <h1>Privileged User Control</h1>
+        <h1>Privileged Access Control</h1>
         <p class="subtitle">Administrator Dashboard</p>
-
         <form id="loginForm">
             <div class="form-group">
                 <label for="adminUsername">Admin username</label>
-                <input id="adminUsername" name="username"
-                       placeholder="Enter admin username"
-                       autocomplete="username" required>
+                <input id="adminUsername" name="username" placeholder="Enter admin username" autocomplete="username" required>
             </div>
-
             <div class="form-group">
                 <label for="adminPassword">Admin password</label>
-                <input id="adminPassword" name="password" type="password"
-                       placeholder="Enter admin password"
-                       autocomplete="current-password" required>
+                <input id="adminPassword" name="password" type="password" placeholder="Enter admin password" autocomplete="current-password" required>
             </div>
-
             <button type="submit" id="loginButton">Sign in as administrator</button>
             <div id="loginMessage" class="message hidden" role="alert"></div>
         </form>
@@ -463,34 +176,37 @@
 
     <section id="dashboardPage" class="hidden">
         <div class="dashboard-header">
-            <div>
-                <h1>Privileged User Control</h1>
-                <p>Self-Healing UI Test Automation</p>
-            </div>
+            <div><h1>Privileged User Control</h1><p>Self-Healing UI Test Automation</p></div>
             <button type="button" id="logoutButton" class="small-button">Sign out</button>
         </div>
-
         <h2>Test Automation Overview</h2>
         <button type="button" id="runTestsButton" class="small-button">Run Tests</button>
+            <div class="category-runs" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button type="button" class="small-button category-run" data-category="login">Run Login Tests</button>
+                <button type="button" class="small-button category-run" data-category="products">Run Product/Search Tests</button>
+                <button type="button" class="small-button category-run" data-category="cart">Run Cart Tests</button>
+                <button type="button" class="small-button category-run" data-category="healing-validation">Run Healing Validation Tests</button>
+                <button type="button" class="small-button category-run" data-category="ai-self-healing">Run AI / Self-Healing Tests</button>
+            </div>
+            <div id="runReasonPanel" class="dashboard-section hidden" style="margin-top:16px" aria-live="polite">
+                <div class="section-header"><h2 id="runReasonHeading">Reason for Test Run</h2></div>
+                <div class="section-body">
+                    <p>Please enter why you are running this test. This reason will be saved with the execution history.</p>
+                    <label for="runReasonInput">Run reason</label>
+                    <textarea id="runReasonInput" maxlength="500" rows="3" placeholder="For example: Verify the login flow after changing the login page." style="width:100%;padding:12px;border:1px solid #d4dfef;border-radius:9px;font:inherit;resize:vertical;color:#172033" required></textarea>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                        <button type="button" id="confirmRunButton" class="small-button">Start Test Run</button>
+                        <button type="button" id="cancelRunButton" class="small-button" style="background:#64748b">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-section" style="margin-top:16px"><div class="section-header"><h2>Daily Automatic Schedule</h2></div><div class="section-body"><div style="display:flex;gap:16px;align-items:end;flex-wrap:wrap;margin-bottom:14px"><div><label for="scheduleTime">Daily execution time (IST)</label><input type="time" id="scheduleTime" value="11:45" required style="width:auto;min-width:150px;padding:10px;border:1px solid #d4dfef;border-radius:9px;background:#fff;color:#172033;font-size:15px"></div><label style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><input type="checkbox" id="scheduleEnabled" checked style="width:auto"> Enable daily automatic test execution</label></div><p id="scheduleStatus">Loading schedule status...</p><button type="button" class="small-button" id="saveScheduleButton">Save Schedule</button></div></div>
         <div id="dashboardMessage" class="message hidden" role="status"></div>
 
         <section id="progressSection" class="progress-section hidden" aria-live="polite">
-            <div class="progress-heading">
-                <h3>Test Execution Progress</h3>
-                <span id="progressPercent" class="progress-percent">0%</span>
-            </div>
-
-            <div class="status-line">
-                <span id="progressDot" class="status-dot"></span>
-                <span id="progressStatus">Waiting to start...</span>
-            </div>
-
-            <div id="progressTrack" class="progress-track"
-                 role="progressbar" aria-label="Test execution progress"
-                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-
+            <div class="progress-heading"><h3>Test Execution Progress</h3><span id="progressPercent" class="progress-percent">0%</span></div>
+            <div class="status-line"><span id="progressDot" class="status-dot"></span><span id="progressStatus">Waiting to start...</span></div>
+            <div id="progressTrack" class="progress-track" role="progressbar" aria-label="Test execution progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressFill" class="progress-fill"></div></div>
             <div class="progress-counts">
                 <div class="progress-count"><span>Completed</span><strong id="progressCompleted">0 / 0</strong></div>
                 <div class="progress-count"><span>Passed</span><strong id="progressPassed">0</strong></div>
@@ -498,11 +214,7 @@
                 <div class="progress-count"><span>Errors</span><strong id="progressErrors">0</strong></div>
                 <div class="progress-count"><span>Remaining</span><strong id="progressRemaining">0</strong></div>
             </div>
-
-            <div class="current-test">
-                <strong>Current test:</strong>
-                <span id="currentTest">Waiting for pytest collection...</span>
-            </div>
+            <div class="current-test"><strong>Current test:</strong> <span id="currentTest">Waiting for pytest collection...</span></div>
         </section>
 
         <div class="stats">
@@ -519,6 +231,8 @@
                 <p>Status: <strong id="latestRunStatus">—</strong></p>
                 <p>Date and time: <strong id="latestRunTime">—</strong></p>
                 <p>Duration: <strong id="latestRunDuration">—</strong></p>
+                <p>Reason for run: <strong id="latestRunReason">—</strong></p>
+                <p>Test category: <strong id="latestRunCategory">—</strong></p>
                 <p>Report: <strong id="latestRunReport">—</strong></p>
             </div>
         </div>
@@ -534,134 +248,52 @@
         </div>
 
         <div class="dashboard-section">
-            <div class="section-header">
-                <h2>Execution History</h2>
-                <button type="button" id="refreshButton" class="small-button">Refresh</button>
-            </div>
-
+            <div class="section-header"><h2>Execution History</h2><button type="button" id="refreshButton" class="small-button">Refresh</button></div>
             <div class="history-filters">
                 <div class="filter-grid">
-                    <div class="filter-field">
-                        <label for="fromDate">From date</label>
-                        <div class="picker-wrap">
-                            <span class="picker-icon" aria-hidden="true">📅</span>
-                            <input type="date" id="fromDate" aria-label="Filter from date">
-                        </div>
-                    </div>
-
+                    <div class="filter-field"><label for="fromDate">From date</label><div class="picker-wrap"><span class="picker-icon" aria-hidden="true">📅</span><input type="date" id="fromDate" aria-label="Filter from date"></div></div>
                     <div class="filter-field">
                         <label for="fromTimeDisplay">From time</label>
-                        <div class="time-picker">
-                            <button type="button" id="fromTimeDisplay"
-                                    class="time-display" aria-haspopup="dialog"
-                                    aria-expanded="false">
-                                <span class="clock-symbol" aria-hidden="true">🕒</span>
-                                <span class="time-value" id="fromTimeLabel">Any time</span>
-                                <span class="dropdown-arrow" aria-hidden="true">▾</span>
-                            </button>
-                            <div class="time-popup hidden" id="fromTimePopup"
-                                 role="dialog" aria-label="Choose starting time">
+                        <div class="time-picker" id="fromTimePicker">
+                            <button type="button" id="fromTimeDisplay" class="time-display" aria-haspopup="dialog" aria-expanded="false"><span class="clock-symbol" aria-hidden="true">🕒</span><span class="time-value" id="fromTimeLabel">Any time</span><span class="dropdown-arrow" aria-hidden="true">▾</span></button>
+                            <div class="time-popup hidden" id="fromTimePopup" role="dialog" aria-label="Choose starting time">
                                 <p class="time-popup-title">Choose starting time</p>
                                 <div class="time-selectors">
-                                    <div class="time-selector">
-                                        <label for="fromHour">Hour</label>
-                                        <select id="fromHour"></select>
-                                    </div>
-                                    <div class="time-selector">
-                                        <label for="fromMinute">Minute</label>
-                                        <select id="fromMinute"></select>
-                                    </div>
-                                    <div class="time-selector">
-                                        <label for="fromPeriod">AM/PM</label>
-                                        <select id="fromPeriod">
-                                            <option value="AM">AM</option>
-                                            <option value="PM">PM</option>
-                                        </select>
-                                    </div>
+                                    <div class="time-selector"><label for="fromHour">Hour</label><select id="fromHour"></select></div>
+                                    <div class="time-selector"><label for="fromMinute">Minute</label><select id="fromMinute"></select></div>
+                                    <div class="time-selector"><label for="fromPeriod">AM/PM</label><select id="fromPeriod"><option value="AM">AM</option><option value="PM">PM</option></select></div>
                                 </div>
-                                <div class="time-popup-footer">
-                                    <button type="button" class="time-cancel" data-time-cancel="from">Cancel</button>
-                                    <button type="button" data-time-apply="from">Set time</button>
-                                </div>
+                                <div class="time-popup-footer"><button type="button" class="time-cancel" data-time-cancel="from">Cancel</button><button type="button" data-time-apply="from">Set time</button></div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="filter-field">
-                        <label for="toDate">To date</label>
-                        <div class="picker-wrap">
-                            <span class="picker-icon" aria-hidden="true">📅</span>
-                            <input type="date" id="toDate" aria-label="Filter to date">
-                        </div>
-                    </div>
-
+                    <div class="filter-field"><label for="toDate">To date</label><div class="picker-wrap"><span class="picker-icon" aria-hidden="true">📅</span><input type="date" id="toDate" aria-label="Filter to date"></div></div>
                     <div class="filter-field">
                         <label for="toTimeDisplay">To time</label>
-                        <div class="time-picker">
-                            <button type="button" id="toTimeDisplay"
-                                    class="time-display" aria-haspopup="dialog"
-                                    aria-expanded="false">
-                                <span class="clock-symbol" aria-hidden="true">🕒</span>
-                                <span class="time-value" id="toTimeLabel">Any time</span>
-                                <span class="dropdown-arrow" aria-hidden="true">▾</span>
-                            </button>
-                            <div class="time-popup hidden" id="toTimePopup"
-                                 role="dialog" aria-label="Choose ending time">
+                        <div class="time-picker" id="toTimePicker">
+                            <button type="button" id="toTimeDisplay" class="time-display" aria-haspopup="dialog" aria-expanded="false"><span class="clock-symbol" aria-hidden="true">🕒</span><span class="time-value" id="toTimeLabel">Any time</span><span class="dropdown-arrow" aria-hidden="true">▾</span></button>
+                            <div class="time-popup hidden" id="toTimePopup" role="dialog" aria-label="Choose ending time">
                                 <p class="time-popup-title">Choose ending time</p>
                                 <div class="time-selectors">
-                                    <div class="time-selector">
-                                        <label for="toHour">Hour</label>
-                                        <select id="toHour"></select>
-                                    </div>
-                                    <div class="time-selector">
-                                        <label for="toMinute">Minute</label>
-                                        <select id="toMinute"></select>
-                                    </div>
-                                    <div class="time-selector">
-                                        <label for="toPeriod">AM/PM</label>
-                                        <select id="toPeriod">
-                                            <option value="AM">AM</option>
-                                            <option value="PM">PM</option>
-                                        </select>
-                                    </div>
+                                    <div class="time-selector"><label for="toHour">Hour</label><select id="toHour"></select></div>
+                                    <div class="time-selector"><label for="toMinute">Minute</label><select id="toMinute"></select></div>
+                                    <div class="time-selector"><label for="toPeriod">AM/PM</label><select id="toPeriod"><option value="AM">AM</option><option value="PM">PM</option></select></div>
                                 </div>
-                                <div class="time-popup-footer">
-                                    <button type="button" class="time-cancel" data-time-cancel="to">Cancel</button>
-                                    <button type="button" data-time-apply="to">Set time</button>
-                                </div>
+                                <div class="time-popup-footer"><button type="button" class="time-cancel" data-time-cancel="to">Cancel</button><button type="button" data-time-apply="to">Set time</button></div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="filter-actions">
-                    <button type="button" id="applyFilterButton">Apply Filter</button>
-                    <button type="button" id="clearFilterButton" class="clear-button">Clear Filter</button>
-                    <span id="filterResult" class="filter-result" aria-live="polite">Showing all runs</span>
-                </div>
+                <div class="filter-actions"><button type="button" id="applyFilterButton">Apply Filter</button><button type="button" id="clearFilterButton" class="clear-button">Clear Filter</button><span id="filterResult" class="filter-result" aria-live="polite">Showing all runs</span></div>
                 <p id="filterError" class="filter-error hidden" role="alert"></p>
             </div>
-
             <div class="table-container">
                 <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Run ID</th>
-                            <th>Date and Time</th>
-                            <th>Total</th>
-                            <th>Passed</th>
-                            <th>Failed</th>
-                            <th>Status</th>
-                            <th>Report</th>
-                            <th>Summary</th>
-                            <th>Log</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyBody">
-                        <tr><td colspan="9">No execution history loaded.</td></tr>
-                    </tbody>
+                    <thead><tr><th>Run ID</th><th>Date and Time</th><th>Reason</th><th>Category</th><th>Total</th><th>Passed</th><th>Failed</th><th>Status</th><th>Report</th><th>Summary</th><th>Log</th></tr></thead>
+                    <tbody id="historyBody"><tr><td colspan="11">No execution history loaded.</td></tr></tbody>
                 </table>
             </div>
+            <nav id="historyPagination" class="pagination" aria-label="Execution history pages"></nav>
         </div>
     </section>
 
@@ -669,300 +301,161 @@
         "use strict";
 
         const API = {
-            login: "/admin/login",
-            logout: "/admin/logout",
-            summary: "/admin/api/summary",
-            history: "/admin/api/runs",
-            runTests: "/admin/api/run",
-            runStatus: "/admin/api/run/status"
+            login: "/admin/login", logout: "/admin/logout",
+            summary: "/admin/api/summary", history: "/admin/api/runs",
+            runTests: "/admin/api/run", runStatus: "/admin/api/run/status", schedule: "/admin/api/schedule"
         };
-
         const $ = id => document.getElementById(id);
-
         let pollingTimer = null;
         let isPolling = false;
         let allRuns = [];
         let currentFilter = null;
-
+        let visibleRuns = [];
+        let currentPage = 1;
+        const RUNS_PER_PAGE = 15;
         const selectedTimes = { from: null, to: null };
 
         function showMessage(element, message, type = "error") {
             element.textContent = message;
             element.className = `message ${type}`;
         }
-
         function hideMessage(element) {
             element.textContent = "";
             element.className = "message hidden";
         }
-
         function showLogin() {
             stopProgressPolling();
             $("dashboardPage").classList.add("hidden");
             $("loginPage").classList.remove("hidden");
         }
-
         function showDashboard() {
             $("loginPage").classList.add("hidden");
             $("dashboardPage").classList.remove("hidden");
         }
-
         async function apiRequest(url, options = {}) {
             const response = await fetch(url, {
-                credentials: "same-origin",
-                cache: "no-store",
-                ...options,
+                credentials: "same-origin", cache: "no-store", ...options,
                 headers: {
                     ...(options.body ? { "Content-Type": "application/json" } : {}),
                     ...(options.headers || {})
                 }
             });
-
             let data = {};
-            try {
-                data = await response.json();
-            } catch {
-                data = {};
-            }
-
+            try { data = await response.json(); } catch { data = {}; }
             if (response.status === 401) {
                 showLogin();
                 throw new Error("Your admin session has expired. Please sign in again.");
             }
-
             if (!response.ok) {
-                const error = new Error(
-                    data.message || `Request failed (${response.status}).`
-                );
+                const error = new Error(data.message || `Request failed (${response.status}).`);
                 error.status = response.status;
                 error.data = data;
                 throw error;
             }
-
             return data;
         }
-
         function firstValue(object, keys, fallback = "—") {
             for (const key of keys) {
-                if (object && object[key] !== undefined &&
-                    object[key] !== null && object[key] !== "") {
+                if (object && object[key] !== undefined && object[key] !== null && object[key] !== "") {
                     return object[key];
                 }
             }
             return fallback;
         }
-
         function setText(id, value) {
-            $(id).textContent =
-                value === null || value === undefined || value === ""
-                    ? "—"
-                    : String(value);
+            $(id).textContent = value === null || value === undefined || value === "" ? "—" : String(value);
         }
-
         function parseRunDate(value) {
-            if (value === null || value === undefined || value === "") {
-                return null;
-            }
-
-            if (value instanceof Date) {
-                return Number.isNaN(value.getTime()) ? null : value;
-            }
-
+            if (value === null || value === undefined || value === "") return null;
+            if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
             const text = String(value).trim();
-
-            // Report-folder timestamp: YYYY-MM-DD_HH-MM-SS_microseconds
-            const match = text.match(
-                /^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})(?:_(\d+))?$/
-            );
-
+            const match = text.match(/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})(?:_(\d+))?$/);
             if (match) {
                 const [, y, mo, d, h, mi, s] = match;
-                const year = Number(y);
-                const month = Number(mo);
-                const day = Number(d);
-                const hours = Number(h);
-                const minutes = Number(mi);
-                const seconds = Number(s);
-
-                const date = new Date(
-                    year, month - 1, day, hours, minutes, seconds
-                );
-
-                if (
-                    date.getFullYear() !== year ||
-                    date.getMonth() !== month - 1 ||
-                    date.getDate() !== day ||
-                    date.getHours() !== hours ||
-                    date.getMinutes() !== minutes ||
-                    date.getSeconds() !== seconds
-                ) {
-                    return null;
-                }
-
+                const parts = [Number(y), Number(mo), Number(d), Number(h), Number(mi), Number(s)];
+                const date = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+                if (date.getFullYear() !== parts[0] || date.getMonth() !== parts[1] - 1 ||
+                    date.getDate() !== parts[2] || date.getHours() !== parts[3] ||
+                    date.getMinutes() !== parts[4] || date.getSeconds() !== parts[5]) return null;
                 return date;
             }
-
             const date = new Date(text);
             return Number.isNaN(date.getTime()) ? null : date;
         }
-
         function getRunTimestamp(run) {
-            // Timestamp fields are preferred. Folder names are only used
-            // for the timestamp, never as an invented Run ID.
-            const timestamp = firstValue(run, [
-                "started_at", "timestamp", "date", "created_at",
-                "folder_name", "report_dir", "directory"
-            ], null);
-
-            if (timestamp === null) return null;
-
-            // Some report_dir values contain a complete path.
-            const text = String(timestamp).replace(/\\/g, "/");
-            const folderMatch = text.match(
-                /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(?:_\d+)?)/
-            );
-
-            return parseRunDate(folderMatch ? folderMatch[1] : timestamp);
+            return parseRunDate(firstValue(run, ["started_at", "timestamp", "date", "created_at", "folder_name", "run_id"], null));
         }
-
         function formatDate(value) {
-            if (value === null || value === undefined || value === "" || value === "—") {
-                return "—";
-            }
-
+            if (value === null || value === undefined || value === "" || value === "—") return "—";
             const date = value instanceof Date ? value : parseRunDate(value);
             if (!date) return String(value);
-
             const day = String(date.getDate()).padStart(2, "0");
             const month = String(date.getMonth() + 1).padStart(2, "0");
-            const year = date.getFullYear();
+            const hour = date.getHours() % 12 || 12;
             const suffix = date.getHours() >= 12 ? "PM" : "AM";
-            const hours = date.getHours() % 12 || 12;
-            const minutes = String(date.getMinutes()).padStart(2, "0");
-
-            return `${day}-${month}-${year} ${String(hours).padStart(2, "0")}:${minutes} ${suffix}`;
+            return `${day}-${String(month).padStart(2, "0")}-${date.getFullYear()} ${String(hour).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")} ${suffix}`;
         }
-
         function addLink(container, url, label) {
             container.replaceChildren();
-
-            if (!url || url === "—") {
-                container.textContent = "—";
-                return;
-            }
-
+            if (!url || url === "—") { container.textContent = "—"; return; }
             const link = document.createElement("a");
-            link.href = url;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            link.textContent = label;
-            container.appendChild(link);
+            link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
+            link.textContent = label; container.appendChild(link);
         }
-
         function updateSummary(data) {
             const summary = data.summary || data.stats || data;
             const latest = data.latest_run || data.latest || {};
+            setText("totalTests", firstValue(summary, ["total_tests", "total", "tests_total"]));
+            setText("passedTests", firstValue(summary, ["passed", "passed_tests", "tests_passed"]));
+            setText("failedTests", firstValue(summary, ["failed", "failed_tests", "tests_failed"]));
+            setText("healingSuggestions", firstValue(summary, ["suggestions", "healing_suggestions", "suggestion_count", "total_suggestions"]));
 
-            setText("totalTests", firstValue(summary, [
-                "total_tests", "total", "tests_total"
-            ]));
-
-            setText("passedTests", firstValue(summary, [
-                "passed", "passed_tests", "tests_passed"
-            ]));
-
-            setText("failedTests", firstValue(summary, [
-                "failed", "failed_tests", "tests_failed"
-            ]));
-
-            setText("healingSuggestions", firstValue(summary, [
-                "suggestions", "healing_suggestions",
-                "suggestion_count", "total_suggestions"
-            ]));
-
-            /*
-             * IMPORTANT:
-             * Only use fields that actually identify a run.
-             * Do not fall back to a timestamp, date, or folder name.
-             */
-            const runId = firstValue(latest, [
-                "display_run_id", "run_id", "runId", "id", "run_number"
-            ], null);
-
-            setText(
-                "latestRunId",
-                runId !== null && runId !== "—" && String(runId).trim() !== ""
-                    ? runId
-                    : "—"
-            );
-
-            setText("latestRunStatus", firstValue(latest, [
-                "status", "result"
-            ]));
-
-            const runTimestamp = firstValue(latest, [
-                "started_at", "timestamp", "date", "created_at",
-                "folder_name", "report_dir", "directory"
-            ], null);
-
+            // Prefer a real run identifier. If the backend doesn't send one, derive it from
+            // the report folder/timestamp fields instead of leaving the Run ID blank.
+            const explicitId = firstValue(latest, ["display_run_id", "run_id", "runId", "id", "folder_name", "report_id", "directory", "report_dir", "name"], null);
+            const runTimestamp = firstValue(latest, ["started_at", "timestamp", "date", "created_at", "folder_name", "run_id"], null);
+            let runId = explicitId;
+            if (runId === null || runId === "—") {
+                const timestamp = parseRunDate(runTimestamp);
+                runId = timestamp ? formatRunId(timestamp) : (runTimestamp || "—");
+            }
+            setText("latestRunId", runId);
+            setText("latestRunStatus", firstValue(latest, ["status", "result"]));
             setText("latestRunTime", formatDate(runTimestamp));
-
-            setText("latestRunDuration", firstValue(latest, [
-                "duration", "duration_seconds"
-            ]));
-
-            addLink(
-                $("latestRunReport"),
-                latest.report_url || latest.report,
-                "Open report"
-            );
-
-            setText("suggestionCount", firstValue(summary, [
-                "suggestions", "healing_suggestions",
-                "suggestion_count", "total_suggestions"
-            ]));
-
-            setText("acceptedCount", firstValue(summary, [
-                "accepted", "accepted_suggestions"
-            ]));
-
-            setText("rejectedCount", firstValue(summary, [
-                "rejected", "rejected_suggestions"
-            ]));
-
-            setText("healingFailedCount", firstValue(summary, [
-                "failed_healing", "failed_healing_attempts",
-                "failed_operations"
-            ]));
+            setText("latestRunDuration", firstValue(latest, ["duration", "duration_seconds"]));
+            addLink($("latestRunReport"), latest.report_url || latest.report, "Open report");
+            setText("latestRunReason", latest.reason || "Legacy run (reason not recorded)");
+            setText("latestRunCategory", latest.category || "all");
+            setText("suggestionCount", firstValue(summary, ["suggestions", "healing_suggestions", "suggestion_count", "total_suggestions"]));
+            setText("acceptedCount", firstValue(summary, ["accepted", "accepted_suggestions"]));
+            setText("rejectedCount", firstValue(summary, ["rejected", "rejected_suggestions"]));
+            setText("healingFailedCount", firstValue(summary, ["failed_healing", "failed_healing_attempts", "failed_operations"]));
         }
-
+        function formatRunId(date) {
+            const p = n => String(n).padStart(2, "0");
+            return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}_${p(date.getHours())}-${p(date.getMinutes())}-${p(date.getSeconds())}`;
+        }
         function createCell(value) {
             const cell = document.createElement("td");
-            cell.textContent = value === null || value === undefined || value === ""
-                ? "—"
-                : String(value);
+            cell.textContent = value === null || value === undefined || value === "" ? "—" : String(value);
             return cell;
         }
-
         function addReportLink(cell, url, label) {
-            if (!url || url === "—") {
-                cell.textContent = "—";
-                return;
-            }
-
+            if (!url || url === "—") { cell.textContent = "—"; return; }
             const link = document.createElement("a");
-            link.href = url;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-            link.textContent = label;
-            cell.appendChild(link);
+            link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
+            link.textContent = label; cell.appendChild(link);
         }
-
         function renderHistory(runs) {
+            visibleRuns = runs;
+            const totalPages = Math.max(1, Math.ceil(visibleRuns.length / RUNS_PER_PAGE));
+            currentPage = Math.min(Math.max(1, currentPage), totalPages);
+            const startIndex = (currentPage - 1) * RUNS_PER_PAGE;
+            const pageRuns = visibleRuns.slice(startIndex, startIndex + RUNS_PER_PAGE);
             const body = $("historyBody");
             body.replaceChildren();
 
-            if (!runs.length) {
+            if (!visibleRuns.length) {
                 const row = document.createElement("tr");
                 const cell = document.createElement("td");
                 cell.colSpan = 9;
@@ -971,600 +464,462 @@
                     : "No test executions recorded yet.";
                 row.appendChild(cell);
                 body.appendChild(row);
+                renderPagination(0, 0, 0);
                 return;
             }
 
-            runs.forEach(run => {
+            pageRuns.forEach(run => {
                 const row = document.createElement("tr");
                 const timestamp = getRunTimestamp(run);
-
                 row.appendChild(createCell(run.display_run_id));
-                row.appendChild(createCell(formatDate(timestamp)));
-                row.appendChild(createCell(firstValue(run, [
-                    "total", "total_tests", "tests_total"
-                ])));
-                row.appendChild(createCell(firstValue(run, [
-                    "passed", "passed_tests"
-                ])));
-                row.appendChild(createCell(firstValue(run, [
-                    "failed", "failed_tests"
-                ])));
-                row.appendChild(createCell(firstValue(run, [
-                    "status", "result"
-                ])));
-
+                row.appendChild(createCell(formatDate(timestamp || firstValue(run, ["date", "started_at", "timestamp", "created_at"]))));
+                row.appendChild(createCell(run.reason || "Legacy run (reason not recorded)"));
+                row.appendChild(createCell(run.category || "all"));
+                row.appendChild(createCell(firstValue(run, ["total", "total_tests", "tests_total"])));
+                row.appendChild(createCell(firstValue(run, ["passed", "passed_tests"])));
+                row.appendChild(createCell(firstValue(run, ["failed", "failed_tests"])));
+                row.appendChild(createCell(firstValue(run, ["status", "result"])));
                 const reportCell = document.createElement("td");
                 addReportLink(reportCell, run.report_url || run.report, "View report");
                 row.appendChild(reportCell);
-
                 const summaryCell = document.createElement("td");
                 addReportLink(summaryCell, run.summary_url, "Summary");
                 row.appendChild(summaryCell);
-
                 const logCell = document.createElement("td");
                 addReportLink(logCell, run.log_url, "Log");
                 row.appendChild(logCell);
-
                 body.appendChild(row);
             });
+
+            renderPagination(visibleRuns.length, startIndex + 1, Math.min(startIndex + RUNS_PER_PAGE, visibleRuns.length));
         }
 
-        function updateHistory(data) {
-            const runs = Array.isArray(data)
-                ? data
-                : (data.runs || data.history || []);
-
-            allRuns = runs.map((run, index) => ({
-                ...run,
-                // The list position is a display index, not a database ID.
-                display_run_id: runs.length - index
-            }));
-
-            applyCurrentFilter();
-        }
-
-        function getTimeElementIds(prefix) {
-            return {
-                display: `${prefix}TimeDisplay`,
-                popup: `${prefix}TimePopup`,
-                label: `${prefix}TimeLabel`,
-                hour: `${prefix}Hour`,
-                minute: `${prefix}Minute`,
-                period: `${prefix}Period`
-            };
-        }
-
-        function initializeTimePicker(prefix) {
-            const ids = getTimeElementIds(prefix);
-            const hourSelect = $(ids.hour);
-            const minuteSelect = $(ids.minute);
-            const display = $(ids.display);
-            const popup = $(ids.popup);
-
-            if (!hourSelect || !minuteSelect || !display || !popup) {
-                console.error(`Time picker elements missing for "${prefix}".`);
+        function renderPagination(totalItems, firstItem, lastItem) {
+            const container = $("historyPagination");
+            container.replaceChildren();
+            if (totalItems <= RUNS_PER_PAGE) {
+                if (totalItems > 0) {
+                    const info = document.createElement("div");
+                    info.className = "pagination-info";
+                    info.textContent = `Showing ${firstItem}–${lastItem} of ${totalItems} runs`;
+                    container.appendChild(info);
+                }
                 return;
             }
 
-            hourSelect.replaceChildren();
-            minuteSelect.replaceChildren();
+            const totalPages = Math.ceil(totalItems / RUNS_PER_PAGE);
+            const addButton = (label, page, options = {}) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.textContent = label;
+                button.disabled = Boolean(options.disabled);
+                if (options.active) {
+                    button.classList.add("active");
+                    button.setAttribute("aria-current", "page");
+                }
+                button.addEventListener("click", () => {
+                    currentPage = page;
+                    renderHistory(visibleRuns);
+                });
+                container.appendChild(button);
+            };
 
-            // Hours are bounded from 1 through 12.
-            for (let hour = 1; hour <= 12; hour++) {
-                const option = document.createElement("option");
-                option.value = String(hour);
-                option.textContent = String(hour).padStart(2, "0");
-                hourSelect.appendChild(option);
+            addButton("Previous", Math.max(1, currentPage - 1), { disabled: currentPage === 1 });
+
+            // Keep the page-number controls compact while showing nearby pages.
+            let pages = [];
+            if (totalPages <= 7) {
+                pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+            } else {
+                pages = [1];
+                const firstNearby = Math.max(2, currentPage - 1);
+                const lastNearby = Math.min(totalPages - 1, currentPage + 1);
+                if (firstNearby > 2) pages.push("…");
+                for (let page = firstNearby; page <= lastNearby; page++) pages.push(page);
+                if (lastNearby < totalPages - 1) pages.push("…");
+                pages.push(totalPages);
             }
 
-            // Minutes are bounded from 00 through 59.
-            for (let minute = 0; minute < 60; minute++) {
-                const option = document.createElement("option");
-                option.value = String(minute);
-                option.textContent = String(minute).padStart(2, "0");
-                minuteSelect.appendChild(option);
-            }
-
-            hourSelect.value = "9";
-            minuteSelect.value = "0";
-            $(ids.period).value = "AM";
-
-            display.addEventListener("click", event => {
-                event.stopPropagation();
-
-                const willOpen = popup.classList.contains("hidden");
-                closeAllTimePickers();
-
-                if (willOpen) {
-                    const current = selectedTimes[prefix];
-
-                    if (current !== null) {
-                        setPickerControls(prefix, current);
-                    } else {
-                        hourSelect.value = "9";
-                        minuteSelect.value = "0";
-                        $(ids.period).value = "AM";
-                    }
-
-                    popup.classList.remove("hidden");
-                    display.setAttribute("aria-expanded", "true");
+            pages.forEach(page => {
+                if (page === "…") {
+                    const ellipsis = document.createElement("span");
+                    ellipsis.textContent = "…";
+                    ellipsis.setAttribute("aria-hidden", "true");
+                    container.appendChild(ellipsis);
+                } else {
+                    addButton(String(page), page, { active: page === currentPage });
                 }
             });
 
+            addButton("Next", Math.min(totalPages, currentPage + 1), { disabled: currentPage === totalPages });
+            const info = document.createElement("div");
+            info.className = "pagination-info";
+            info.textContent = `Showing ${firstItem}–${lastItem} of ${totalItems} runs · Page ${currentPage} of ${totalPages}`;
+            container.appendChild(info);
+        }
+
+        function updateHistory(data) {
+            const runs = Array.isArray(data) ? data : (data.runs || data.history || []);
+            allRuns = runs.map((run, index) => ({
+                ...run,
+                display_run_id: firstValue(run, ["display_run_id", "run_id", "runId", "folder_name", "id"], runs.length - index)
+            }));
+            applyCurrentFilter();
+        }
+        function getTimeElementIds(prefix) {
+            return {
+                display: `${prefix}TimeDisplay`, popup: `${prefix}TimePopup`,
+                label: `${prefix}TimeLabel`, hour: `${prefix}Hour`,
+                minute: `${prefix}Minute`, period: `${prefix}Period`
+            };
+        }
+        function initializeTimePicker(prefix) {
+            const ids = getTimeElementIds(prefix);
+            const hourSelect = $(ids.hour), minuteSelect = $(ids.minute);
+            const display = $(ids.display), popup = $(ids.popup);
+            if (!hourSelect || !minuteSelect || !display || !popup) {
+                console.error(`Time picker elements missing for "${prefix}".`); return;
+            }
+            for (let hour = 1; hour <= 12; hour++) {
+                const option = document.createElement("option");
+                option.value = String(hour); option.textContent = String(hour).padStart(2, "0");
+                hourSelect.appendChild(option);
+            }
+            for (let minute = 0; minute < 60; minute++) {
+                const option = document.createElement("option");
+                option.value = String(minute); option.textContent = String(minute).padStart(2, "0");
+                minuteSelect.appendChild(option);
+            }
+            hourSelect.value = "9"; minuteSelect.value = "0"; $(ids.period).value = "AM";
+            display.addEventListener("click", event => {
+                event.stopPropagation();
+                const shouldOpen = popup.classList.contains("hidden");
+                closeAllTimePickers();
+                if (!shouldOpen) return;
+                const current = selectedTimes[prefix];
+                if (current !== null) setPickerControls(prefix, current);
+                else { hourSelect.value = "9"; minuteSelect.value = "0"; $(ids.period).value = "AM"; }
+                popup.classList.remove("hidden");
+                display.setAttribute("aria-expanded", "true");
+            });
             popup.addEventListener("click", event => event.stopPropagation());
-
-            $(`[data-time-apply="${prefix}"]`).addEventListener("click", () => {
-                const hour12 = Number(hourSelect.value);
-                const minute = Number(minuteSelect.value);
+            // IMPORTANT: use querySelector for data attributes; $() is for element IDs only.
+            document.querySelector(`[data-time-apply="${prefix}"]`).addEventListener("click", () => {
+                const hour12 = Number(hourSelect.value), minute = Number(minuteSelect.value);
                 const period = $(ids.period).value;
-
                 let hour24 = hour12 % 12;
                 if (period === "PM") hour24 += 12;
-
                 selectedTimes[prefix] = hour24 * 60 + minute;
-                updateTimeLabel(prefix);
-                closeTimePicker(prefix);
+                updateTimeLabel(prefix); closeTimePicker(prefix);
             });
-
-            $(`[data-time-cancel="${prefix}"]`).addEventListener("click", () => {
-                closeTimePicker(prefix);
-            });
-
+            document.querySelector(`[data-time-cancel="${prefix}"]`).addEventListener("click", () => closeTimePicker(prefix));
             updateTimeLabel(prefix);
         }
-
-        function setPickerControls(prefix, minutesAfterMidnight) {
+        function setPickerControls(prefix, totalMinutes) {
             const ids = getTimeElementIds(prefix);
-            const hours24 = Math.floor(minutesAfterMidnight / 60);
-            const minutes = minutesAfterMidnight % 60;
-            const hours12 = hours24 % 12 || 12;
-            const period = hours24 >= 12 ? "PM" : "AM";
-
-            $(ids.hour).value = String(hours12);
+            const hours24 = Math.floor(totalMinutes / 60), minutes = totalMinutes % 60;
+            $(ids.hour).value = String(hours24 % 12 || 12);
             $(ids.minute).value = String(minutes);
-            $(ids.period).value = period;
+            $(ids.period).value = hours24 >= 12 ? "PM" : "AM";
         }
-
         function updateTimeLabel(prefix) {
-            const ids = getTimeElementIds(prefix);
-            const minutes = selectedTimes[prefix];
-
-            if (minutes === null) {
-                $(ids.label).textContent = "Any time";
-                return;
-            }
-
-            const hours24 = Math.floor(minutes / 60);
-            const minute = minutes % 60;
-            const hours12 = hours24 % 12 || 12;
-            const period = hours24 >= 12 ? "PM" : "AM";
-
-            $(ids.label).textContent =
-                `${String(hours12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${period}`;
+            const ids = getTimeElementIds(prefix), minutes = selectedTimes[prefix];
+            if (minutes === null) { $(ids.label).textContent = "Any time"; return; }
+            const hour24 = Math.floor(minutes / 60), minute = minutes % 60;
+            const hour12 = hour24 % 12 || 12, period = hour24 >= 12 ? "PM" : "AM";
+            $(ids.label).textContent = `${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${period}`;
         }
-
         function closeTimePicker(prefix) {
             const ids = getTimeElementIds(prefix);
             $(ids.popup).classList.add("hidden");
             $(ids.display).setAttribute("aria-expanded", "false");
         }
-
-        function closeAllTimePickers() {
-            closeTimePicker("from");
-            closeTimePicker("to");
-        }
-
+        function closeAllTimePickers() { closeTimePicker("from"); closeTimePicker("to"); }
         document.addEventListener("click", event => {
-            if (!event.target.closest(".time-picker")) {
-                closeAllTimePickers();
-            }
+            if (!event.target.closest(".time-picker")) closeAllTimePickers();
         });
-
         document.addEventListener("keydown", event => {
             if (event.key === "Escape") closeAllTimePickers();
         });
-
         function showFilterError(message) {
             $("filterError").textContent = message;
             $("filterError").classList.remove("hidden");
         }
-
         function clearFilterError() {
             $("filterError").textContent = "";
             $("filterError").classList.add("hidden");
         }
-
         function buildLocalDateTime(dateValue, selectedMinutes, isEnd) {
             if (!dateValue) return null;
-
-            const minutes = selectedMinutes === null
-                ? (isEnd ? 1439 : 0)
-                : selectedMinutes;
-
+            const minutes = selectedMinutes === null ? (isEnd ? 1439 : 0) : selectedMinutes;
             const [year, month, day] = dateValue.split("-").map(Number);
-            const hours = Math.floor(minutes / 60);
-            const mins = minutes % 60;
-            const date = new Date(year, month - 1, day, hours, mins, 0, 0);
-
-            if (
-                date.getFullYear() !== year ||
-                date.getMonth() !== month - 1 ||
-                date.getDate() !== day
-            ) {
-                return null;
-            }
-
+            const date = new Date(year, month - 1, day, Math.floor(minutes / 60), minutes % 60, 0, 0);
+            if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
             return date;
         }
-
         function applyCurrentFilter() {
+            currentPage = 1;
             if (!currentFilter) {
                 renderHistory(allRuns);
-                $("filterResult").textContent = `Showing all ${allRuns.length} runs`;
-                return;
+                $("filterResult").textContent = `Showing all ${allRuns.length} runs`; return;
             }
-
-            const filteredRuns = allRuns.filter(run => {
+            const filtered = allRuns.filter(run => {
                 const timestamp = getRunTimestamp(run);
                 if (!timestamp) return false;
-
                 if (currentFilter.from && timestamp < currentFilter.from) return false;
                 if (currentFilter.to && timestamp > currentFilter.to) return false;
-
                 return true;
             });
-
-            renderHistory(filteredRuns);
-            $("filterResult").textContent =
-                `Showing ${filteredRuns.length} of ${allRuns.length} runs`;
+            renderHistory(filtered);
+            $("filterResult").textContent = `Showing ${filtered.length} of ${allRuns.length} runs`;
         }
-
         function applyFilter() {
             clearFilterError();
-
-            const fromDateValue = $("fromDate").value;
-            const toDateValue = $("toDate").value;
-
+            const fromDateValue = $("fromDate").value, toDateValue = $("toDate").value;
             if (selectedTimes.from !== null && !fromDateValue) {
-                showFilterError("Choose a From date when specifying a From time.");
-                $("fromDate").focus();
-                return;
+                showFilterError("Choose a From date when specifying a From time."); $("fromDate").focus(); return;
             }
-
             if (selectedTimes.to !== null && !toDateValue) {
-                showFilterError("Choose a To date when specifying a To time.");
-                $("toDate").focus();
-                return;
+                showFilterError("Choose a To date when specifying a To time."); $("toDate").focus(); return;
             }
-
             const from = buildLocalDateTime(fromDateValue, selectedTimes.from, false);
             const to = buildLocalDateTime(toDateValue, selectedTimes.to, true);
-
-            if (fromDateValue && !from) {
-                showFilterError("Please choose a valid From date.");
-                return;
-            }
-
-            if (toDateValue && !to) {
-                showFilterError("Please choose a valid To date.");
-                return;
-            }
-
-            if (!from && !to) {
-                currentFilter = null;
-                applyCurrentFilter();
-                return;
-            }
-
+            if (fromDateValue && !from) { showFilterError("Please choose a valid From date."); return; }
+            if (toDateValue && !to) { showFilterError("Please choose a valid To date."); return; }
+            if (!from && !to) { currentFilter = null; applyCurrentFilter(); return; }
             if (from && to && from.getTime() > to.getTime()) {
-                showFilterError(
-                    "The From date and time must be earlier than or equal to the To date and time."
-                );
-                return;
+                showFilterError("The From date and time must be earlier than or equal to the To date and time."); return;
             }
-
-            currentFilter = { from, to };
-            applyCurrentFilter();
+            currentFilter = { from, to }; applyCurrentFilter();
         }
-
         function clearFilter() {
-            $("fromDate").value = "";
-            $("toDate").value = "";
-
-            selectedTimes.from = null;
-            selectedTimes.to = null;
-
-            updateTimeLabel("from");
-            updateTimeLabel("to");
-            closeAllTimePickers();
-
-            currentFilter = null;
-            clearFilterError();
-            applyCurrentFilter();
+            $("fromDate").value = ""; $("toDate").value = "";
+            selectedTimes.from = null; selectedTimes.to = null;
+            updateTimeLabel("from"); updateTimeLabel("to"); closeAllTimePickers();
+            currentFilter = null; clearFilterError(); applyCurrentFilter();
         }
-
         async function loadDashboard() {
             hideMessage($("dashboardMessage"));
-
             try {
-                const [summary, history] = await Promise.all([
-                    apiRequest(API.summary),
-                    apiRequest(API.history)
-                ]);
-
-                updateSummary(summary);
-                updateHistory(history);
-            } catch (error) {
-                showMessage($("dashboardMessage"), error.message);
-            }
+                const [summary, history] = await Promise.all([apiRequest(API.summary), apiRequest(API.history)]);
+                updateSummary(summary); updateHistory(history);
+            } catch (error) { showMessage($("dashboardMessage"), error.message); }
         }
-
         function updateProgress(data) {
             const progress = data.progress || data;
-
-            const total = Number(progress.total) || 0;
-            const completed = Number(progress.completed) || 0;
-            const passed = Number(progress.passed) || 0;
-            const failed = Number(progress.failed) || 0;
-            const errors = Number(progress.errors) || 0;
-            const skipped = Number(progress.skipped) || 0;
-
-            const remaining = Number.isFinite(Number(progress.remaining))
-                ? Number(progress.remaining)
-                : Math.max(0, total - completed);
-
+            const total = Number(progress.total) || 0, completed = Number(progress.completed) || 0;
+            const passed = Number(progress.passed) || 0, failed = Number(progress.failed) || 0;
+            const errors = Number(progress.errors) || 0, skipped = Number(progress.skipped) || 0;
+            const remaining = Number.isFinite(Number(progress.remaining)) ? Number(progress.remaining) : Math.max(0, total - completed);
             const status = String(progress.status || "starting").toLowerCase();
             const running = Boolean(data.running);
             const percent = Math.max(0, Math.min(100, Number(progress.percent) || 0));
-
             $("progressSection").classList.remove("hidden");
             setText("progressPercent", `${percent}%`);
             $("progressTrack").setAttribute("aria-valuenow", String(percent));
-
             setText("progressCompleted", `${completed} / ${total}`);
-            setText("progressPassed", passed);
-            setText("progressFailed", failed);
-            setText("progressErrors", errors);
-            setText("progressRemaining", remaining);
-
-            setText("currentTest", progress.current_test ||
-                (running
-                    ? "Collecting tests or preparing the next test..."
-                    : "No test currently running."));
-
+            setText("progressPassed", passed); setText("progressFailed", failed);
+            setText("progressErrors", errors); setText("progressRemaining", remaining);
+            setText("currentTest", progress.current_test || (running ? "Collecting tests or preparing the next test..." : "No test currently running."));
             $("progressDot").className = "status-dot";
             $("progressFill").className = "progress-fill";
             $("progressFill").style.width = `${percent}%`;
-
             if (running || status === "starting") {
-                $("progressStatus").textContent = total > 0
-                    ? `Running tests — ${completed} of ${total} completed`
-                    : "Starting pytest and collecting tests...";
-
+                $("progressStatus").textContent = total > 0 ? `Running tests — ${completed} of ${total} completed` : "Starting pytest and collecting tests...";
                 $("progressDot").classList.add("running");
-
-                if (total === 0) {
-                    $("progressFill").classList.add("indeterminate");
-                    $("progressFill").style.width = "";
-                }
+                if (total === 0) { $("progressFill").classList.add("indeterminate"); $("progressFill").style.width = ""; }
             } else if (status === "completed" || data.return_code === 0) {
-                $("progressStatus").textContent =
-                    `Completed: ${passed} passed, ${failed} failed, ${errors} errors, ${skipped} skipped.`;
-
-                $("progressDot").classList.add("completed");
-                $("progressFill").classList.add("completed");
-                $("progressPercent").textContent = "100%";
-                $("progressTrack").setAttribute("aria-valuenow", "100");
-                $("progressFill").style.width = "100%";
-            } else if (status === "failed" ||
-                       (data.return_code !== null &&
-                        data.return_code !== undefined)) {
-                $("progressStatus").textContent =
-                    `Test process ended unsuccessfully (exit code ${data.return_code}).`;
-
-                $("progressDot").classList.add("failed");
-                $("progressFill").classList.add("failed");
+                $("progressStatus").textContent = `Completed: ${passed} passed, ${failed} failed, ${errors} errors, ${skipped} skipped.`;
+                $("progressDot").classList.add("completed"); $("progressFill").classList.add("completed");
+                $("progressPercent").textContent = "100%"; $("progressTrack").setAttribute("aria-valuenow", "100"); $("progressFill").style.width = "100%";
+            } else if (status === "failed" || (data.return_code !== null && data.return_code !== undefined)) {
+                $("progressStatus").textContent = `Test process ended unsuccessfully (exit code ${data.return_code}).`;
+                $("progressDot").classList.add("failed"); $("progressFill").classList.add("failed");
             }
         }
-
         function stopProgressPolling() {
-            if (pollingTimer !== null) {
-                clearTimeout(pollingTimer);
-                pollingTimer = null;
-            }
+            if (pollingTimer !== null) { clearTimeout(pollingTimer); pollingTimer = null; }
             isPolling = false;
         }
-
         async function pollProgress() {
             if (isPolling) return;
             isPolling = true;
-
             try {
                 const data = await apiRequest(API.runStatus);
                 updateProgress(data);
-
                 if (data.running) {
-                    $("runTestsButton").disabled = true;
-                    $("runTestsButton").textContent = "Tests Running...";
-
-                    pollingTimer = setTimeout(() => {
-                        isPolling = false;
-                        pollProgress();
-                    }, 1000);
+                    $("runTestsButton").disabled = true; $("runTestsButton").textContent = "Tests Running...";
+                    pollingTimer = setTimeout(() => { isPolling = false; pollProgress(); }, 1000);
                 } else {
                     stopProgressPolling();
-
-                    $("runTestsButton").disabled = false;
-                    $("runTestsButton").textContent = "Run Tests";
-
+                    $("runTestsButton").disabled = false; $("runTestsButton").textContent = "Run Tests";
                     if (data.status === "completed" || data.return_code === 0) {
-                        showMessage(
-                            $("dashboardMessage"),
-                            "Test execution completed. Reports have been refreshed.",
-                            "success"
-                        );
-                    } else if (data.status === "failed" ||
-                               (data.return_code !== null &&
-                                data.return_code !== undefined &&
-                                data.return_code !== 0)) {
-                        showMessage(
-                            $("dashboardMessage"),
-                            "Test execution ended unsuccessfully. Check the execution log."
-                        );
+                        showMessage($("dashboardMessage"), "Test execution completed. Reports have been refreshed.", "success");
+                    } else if (data.status === "failed" || (data.return_code !== null && data.return_code !== undefined && data.return_code !== 0)) {
+                        showMessage($("dashboardMessage"), "Test execution ended unsuccessfully. Check the execution log.");
                     }
-
                     await loadDashboard();
                 }
             } catch (error) {
-                stopProgressPolling();
-                $("runTestsButton").disabled = false;
-                $("runTestsButton").textContent = "Run Tests";
-                showMessage($("dashboardMessage"), error.message);
-            } finally {
-                isPolling = false;
-            }
+                stopProgressPolling(); $("runTestsButton").disabled = false;
+                $("runTestsButton").textContent = "Run Tests"; showMessage($("dashboardMessage"), error.message);
+            } finally { isPolling = false; }
         }
-
         function startProgressPolling() {
-            stopProgressPolling();
-            $("progressSection").classList.remove("hidden");
-            pollProgress();
+            stopProgressPolling(); $("progressSection").classList.remove("hidden"); pollProgress();
         }
-
         $("loginForm").addEventListener("submit", async function(event) {
-            event.preventDefault();
-
-            hideMessage($("loginMessage"));
-            $("loginButton").disabled = true;
-            $("loginButton").textContent = "Signing in...";
-
-            const username = $("adminUsername").value.trim();
-            const password = $("adminPassword").value;
-
+            event.preventDefault(); hideMessage($("loginMessage"));
+            $("loginButton").disabled = true; $("loginButton").textContent = "Signing in...";
+            const username = $("adminUsername").value.trim(), password = $("adminPassword").value;
             try {
-                await apiRequest(API.login, {
-                    method: "POST",
-                    body: JSON.stringify({ username, password })
-                });
-
-                this.reset();
-                showDashboard();
-                await loadDashboard();
-
+                await apiRequest(API.login, { method: "POST", body: JSON.stringify({ username, password }) });
+                this.reset(); showDashboard(); await loadDashboard();
                 const status = await apiRequest(API.runStatus);
                 if (status.running) {
-                    updateProgress(status);
-                    $("runTestsButton").disabled = true;
-                    $("runTestsButton").textContent = "Tests Running...";
-                    startProgressPolling();
+                    updateProgress(status); $("runTestsButton").disabled = true;
+                    $("runTestsButton").textContent = "Tests Running..."; startProgressPolling();
                 }
             } catch (error) {
-                showMessage(
-                    $("dashboardPage").classList.contains("hidden")
-                        ? $("loginMessage")
-                        : $("dashboardMessage"),
-                    error.message
-                );
-            } finally {
-                $("loginButton").disabled = false;
-                $("loginButton").textContent = "Sign in as administrator";
-            }
+                showMessage($("dashboardPage").classList.contains("hidden") ? $("loginMessage") : $("dashboardMessage"), error.message);
+            } finally { $("loginButton").disabled = false; $("loginButton").textContent = "Sign in as administrator"; }
         });
-
         $("logoutButton").addEventListener("click", async function() {
             stopProgressPolling();
-
-            try {
-                await apiRequest(API.logout, {
-                    method: "POST",
-                    body: JSON.stringify({})
-                });
-            } catch {
-                // The session may already have expired.
-            }
-
-            showLogin();
-            hideMessage($("loginMessage"));
-            hideMessage($("dashboardMessage"));
+            try { await apiRequest(API.logout, { method: "POST", body: JSON.stringify({}) }); } catch {}
+            showLogin(); hideMessage($("loginMessage")); hideMessage($("dashboardMessage"));
         });
-
         $("refreshButton").addEventListener("click", async function() {
             await loadDashboard();
-
             try {
                 const status = await apiRequest(API.runStatus);
                 if (status.running) {
-                    updateProgress(status);
-                    $("runTestsButton").disabled = true;
-                    $("runTestsButton").textContent = "Tests Running...";
-                    startProgressPolling();
+                    updateProgress(status); $("runTestsButton").disabled = true;
+                    $("runTestsButton").textContent = "Tests Running..."; startProgressPolling();
                 }
-            } catch (error) {
-                showMessage($("dashboardMessage"), error.message);
-            }
+            } catch (error) { showMessage($("dashboardMessage"), error.message); }
         });
-
         $("applyFilterButton").addEventListener("click", applyFilter);
         $("clearFilterButton").addEventListener("click", clearFilter);
-
-        ["fromDate", "toDate"].forEach(id => {
-            $(id).addEventListener("keydown", event => {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    applyFilter();
-                }
-            });
-        });
-
+        ["fromDate", "toDate"].forEach(id => $(id).addEventListener("keydown", event => {
+            if (event.key === "Enter") { event.preventDefault(); applyFilter(); }
+        }));
         initializeTimePicker("from");
         initializeTimePicker("to");
+        let requestedRunCategory = "all";
 
-        $("runTestsButton").addEventListener("click", async function() {
-            const button = this;
+        function showRunReasonForm(category) {
+            const runButton = $("runTestsButton");
+            if (runButton.disabled) return;
+            requestedRunCategory = category || "all";
+            const labels = {
+                all: "Run All Tests",
+                login: "Run Login Tests",
+                products: "Run Product/Search Tests",
+                cart: "Run Cart Tests",
+                "healing-validation": "Run Healing Validation Tests",
+                "ai-self-healing": "Run AI / Self-Healing Tests"
+            };
+            setText("runReasonHeading", `Reason for ${labels[requestedRunCategory] || "Test Run"}`);
+            $("runReasonPanel").classList.remove("hidden");
+            $("runReasonInput").value = "";
+            $("runReasonInput").focus();
+            $("runReasonPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        function hideRunReasonForm() {
+            $("runReasonPanel").classList.add("hidden");
+            requestedRunCategory = "all";
+        }
+
+        async function startRequestedRun() {
+            const button = $("runTestsButton");
+            const reasonInput = $("runReasonInput");
+            const reason = reasonInput.value.trim();
+            if (!reason) {
+                showMessage($("dashboardMessage"), "Please enter a reason before starting the test run.");
+                reasonInput.focus();
+                return;
+            }
             if (button.disabled) return;
-
-            button.disabled = true;
-            button.textContent = "Starting tests...";
+            button.disabled = true; button.textContent = "Starting tests...";
+            $("confirmRunButton").disabled = true;
+            document.querySelectorAll(".category-run").forEach(item => item.disabled = true);
             hideMessage($("dashboardMessage"));
-
             $("progressSection").classList.remove("hidden");
             $("progressStatus").textContent = "Submitting test execution...";
             $("progressPercent").textContent = "0%";
             $("progressFill").className = "progress-fill indeterminate";
             $("progressDot").className = "status-dot running";
             setText("currentTest", "Waiting for pytest to start...");
-
             try {
-                const result = await apiRequest(API.runTests, {
-                    method: "POST",
-                    body: JSON.stringify({})
-                });
-
-                showMessage(
-                    $("dashboardMessage"),
-                    result.message || "Test execution started.",
-                    "success"
-                );
-
+                const result = await apiRequest(API.runTests, { method: "POST", body: JSON.stringify({ reason, category: requestedRunCategory }) });
+                hideRunReasonForm();
+                $("confirmRunButton").disabled = false;
+                document.querySelectorAll(".category-run").forEach(item => item.disabled = false);
+                showMessage($("dashboardMessage"), result.message || "Test execution started.", "success");
                 startProgressPolling();
+                setTimeout(loadDashboard, 800);
             } catch (error) {
+                button.disabled = false; button.textContent = "Run Tests";
+                $("confirmRunButton").disabled = false;
+                document.querySelectorAll(".category-run").forEach(item => item.disabled = false);
                 if (error.status === 409) {
-                    showMessage(
-                        $("dashboardMessage"),
-                        "A test run is already active. Connecting to its progress...",
-                        "success"
-                    );
-                    startProgressPolling();
+                    showMessage($("dashboardMessage"), "A test run is already active. Connecting to its progress...", "success");
+                    hideRunReasonForm(); startProgressPolling();
                 } else {
-                    button.disabled = false;
-                    button.textContent = "Run Tests";
                     $("progressFill").className = "progress-fill failed";
                     $("progressDot").className = "status-dot failed";
                     $("progressStatus").textContent = "Could not start tests.";
                     showMessage($("dashboardMessage"), error.message);
                 }
             }
+        }
+        $("runTestsButton").addEventListener("click", () => showRunReasonForm("all"));
+        document.querySelectorAll(".category-run").forEach(button => {
+            button.addEventListener("click", () => showRunReasonForm(button.dataset.category));
         });
+        $("confirmRunButton").addEventListener("click", startRequestedRun);
+        $("cancelRunButton").addEventListener("click", hideRunReasonForm);
+        $("runReasonInput").addEventListener("keydown", event => {
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter") startRequestedRun();
+        });
+        function formatScheduleNextRun(value) {
+            if (!value) return "waiting for scheduler";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return new Intl.DateTimeFormat("en-IN", {
+                timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short"
+            }).format(date) + " IST";
+        }
+        async function loadSchedule() {
+            try {
+                const data = await apiRequest(API.schedule);
+                $("scheduleEnabled").checked = Boolean(data.enabled);
+                $("scheduleTime").value = data.time || "11:45";
+                setText("scheduleStatus", data.enabled
+                    ? `Enabled — daily at ${data.time_label || data.time + " IST"}. Next run: ${formatScheduleNextRun(data.next_run)}`
+                    : `Disabled — selected time: ${data.time_label || data.time + " IST"}`);
+            } catch (error) { setText("scheduleStatus", error.message); }
+        }
+        $("saveScheduleButton").addEventListener("click", async () => {
+            try {
+                const selectedTime = $("scheduleTime").value;
+                if (!selectedTime) {
+                    showMessage($("dashboardMessage"), "Please choose a daily execution time.");
+                    return;
+                }
+                const data = await apiRequest(API.schedule, {
+                    method: "POST",
+                    body: JSON.stringify({ enabled: $("scheduleEnabled").checked, time: selectedTime })
+                });
+                setText("scheduleStatus", data.enabled
+                    ? `Enabled — daily at ${data.time_label}. Next run: ${formatScheduleNextRun(data.next_run)}`
+                    : `Disabled — selected time: ${data.time_label}`);
+                showMessage($("dashboardMessage"), data.message, "success");
+            } catch (error) { showMessage($("dashboardMessage"), error.message); }
+        });
+        loadSchedule();
     </script>
 </body>
 </html>
