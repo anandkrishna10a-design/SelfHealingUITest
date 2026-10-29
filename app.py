@@ -1017,6 +1017,32 @@ def admin_page():
     )
 
 # ---------------------------------------------------------
+# SEPARATE TEST DASHBOARD PAGE
+# ---------------------------------------------------------
+
+@app.route("/admin/test-dashboard")
+def admin_test_dashboard_page():
+    """Serve the separate test dashboard only to authenticated admins."""
+    if not admin_is_authenticated():
+        from flask import redirect
+        return redirect("/admin")
+
+    return send_from_directory(
+        str(DEMO_APP_DIR),
+        "test_dashboard.html",
+    )
+
+# Friendly URL for V2. Serve the page even before login so its own
+# login screen can be displayed. Protected APIs still require admin auth.
+@app.route("/dashboard.html")
+def dashboard_html():
+    """Serve V2 directly; do not redirect visitors to the V1 dashboard."""
+    return send_from_directory(
+        str(DEMO_APP_DIR),
+        "test_dashboard.html",
+    )
+
+# ---------------------------------------------------------
 
 # IMAGE ROUTE
 
@@ -1475,6 +1501,107 @@ def admin_login():
         }
 
     )
+
+# ---------------------------------------------------------
+
+# ADMIN USER MANAGEMENT API
+
+# ---------------------------------------------------------
+
+@app.route("/admin/api/admin-users", methods=["POST"])
+def create_admin_user():
+    """Create an additional administrator using a hashed password."""
+    authentication_error = admin_required_response()
+    if authentication_error:
+        return authentication_error
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "message": "Send a valid JSON request containing username and password.",
+        }), 400
+
+    username = str(data.get("username", "")).strip()
+    password = data.get("password", "")
+    if not isinstance(password, str):
+        password = ""
+
+    if not username or not password:
+        return jsonify({
+            "success": False,
+            "message": "Admin username and password are required.",
+        }), 400
+
+    if len(username) < 3:
+        return jsonify({
+            "success": False,
+            "message": "Admin username must be at least 3 characters.",
+        }), 400
+
+    if len(username) > 80 or any(character.isspace() for character in username):
+        return jsonify({
+            "success": False,
+            "message": "Username must be 80 characters or fewer and contain no spaces.",
+        }), 400
+
+    if len(password) < 8:
+        return jsonify({
+            "success": False,
+            "message": "Temporary password must be at least 8 characters.",
+        }), 400
+
+    if len(password) > 1024:
+        return jsonify({
+            "success": False,
+            "message": "Password is too long.",
+        }), 400
+
+    connection = get_admin_database_connection()
+    try:
+        existing_admin = connection.execute(
+            "SELECT id FROM admins WHERE username = ? COLLATE NOCASE",
+            (username,),
+        ).fetchone()
+        if existing_admin:
+            return jsonify({
+                "success": False,
+                "message": "An administrator with that username already exists.",
+            }), 409
+
+        password_hash = generate_password_hash(password)
+        connection.execute(
+            "INSERT INTO admins (username, password_hash) VALUES (?, ?)",
+            (username, password_hash),
+        )
+        connection.commit()
+
+        app.logger.info(
+            "Administrator account created by %s: %s",
+            session.get("admin_username", "admin"),
+            username,
+        )
+        return jsonify({
+            "success": True,
+            "message": f"Administrator '{username}' was created successfully.",
+            "username": username,
+        }), 201
+    except sqlite3.IntegrityError:
+        connection.rollback()
+        return jsonify({
+            "success": False,
+            "message": "An administrator with that username already exists.",
+        }), 409
+    except sqlite3.OperationalError:
+        connection.rollback()
+        app.logger.exception("Could not create administrator; admin database schema may be invalid.")
+        return jsonify({
+            "success": False,
+            "message": "Could not create the administrator because the admin database is not configured correctly.",
+        }), 500
+    finally:
+        connection.close()
+
 
 # ---------------------------------------------------------
 

@@ -1,0 +1,444 @@
+
+import argparse
+import html
+import json
+import re
+from collections import Counter
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_json_file(path):
+    """Load a JSON file and return an empty list if it is unavailable."""
+    if not path.exists():
+        return []
+
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+        return data if isinstance(data, list) else []
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"Could not read {path}: {error}") from error
+
+
+def safe(value):
+    """Escape values before placing them into HTML."""
+    if isinstance(value, (dict, list)):
+        value = json.dumps(value, ensure_ascii=False, indent=2)
+    return html.escape(str(value if value is not None else ""))
+
+
+def normalise_status(value):
+    """Convert recorded event statuses into readable categories."""
+    status = str(value or "unknown").strip().lower().replace("_", " ")
+    status = re.sub(r"\s+", " ", status)
+
+    if "accept" in status or "success" in status or status == "healed":
+        return "Accepted"
+    if "reject" in status or "invalid" in status:
+        return "Rejected / Invalid"
+    if "fail" in status or "error" in status:
+        return "Failed"
+    return status.title() or "Unknown"
+
+
+def read_test_counts(report_dir):
+    """Read pytest summary counts when they appear in execution.log."""
+    log_path = report_dir / "execution.log"
+    counts = {"passed": None, "failed": None, "errors": None}
+
+    if not log_path.exists():
+        return counts
+
+    try:
+        log_text = log_path.read_text(
+            encoding="utf-8", errors="replace"
+        )
+    except OSError:
+        return counts
+
+    # Look at the final pytest-style summary line in the log.
+    summaries = re.findall(
+        r"(?im)^\s*(?:(\d+)\s+passed)?"
+        r"[, ]*\s*(?:(\d+)\s+failed)?"
+        r"[, ]*\s*(?:(\d+)\s+error(?:s)?)?"
+        r".*$",
+        log_text,
+    )
+
+    for line in reversed(log_text.splitlines()):
+        if not re.search(
+            r"\b(?:passed|failed|errors?)\b", line, re.IGNORECASE
+        ):
+            continue
+
+        passed = re.search(r"(\d+)\s+passed\b", line, re.IGNORECASE)
+        failed = re.search(r"(\d+)\s+failed\b", line, re.IGNORECASE)
+        errors = re.search(r"(\d+)\s+errors?\b", line, re.IGNORECASE)
+
+        if passed or failed or errors:
+            counts["passed"] = int(passed.group(1)) if passed else 0
+            counts["failed"] = int(failed.group(1)) if failed else 0
+            counts["errors"] = int(errors.group(1)) if errors else 0
+            break
+
+    return counts
+
+
+def build_event_row(event, index):
+    """Create one searchable HTML row for a healing event."""
+    status = normalise_status(event.get("status"))
+    searchable = " ".join(
+        str(event.get(key, ""))
+        for key in (
+            "test", "failed_locator", "ollama_suggestion",
+            "status", "reason", "evidence", "attempt"
+        )
+    ).lower()
+
+    evidence = event.get("evidence", "")
+    if isinstance(evidence, (dict, list)):
+        evidence = json.dumps(evidence, ensure_ascii=False, indent=2)
+
+    return f"""
+    <tr data-status="{safe(status)}"
+        data-search="{safe(searchable)}">
+      <td>{index}</td>
+      <td>{safe(event.get("test", "Unknown test"))}</td>
+      <td><code>{safe(event.get("failed_locator", ""))}</code></td>
+      <td><code>{safe(event.get("ollama_suggestion", ""))}</code></td>
+      <td>{safe(event.get("attempt", ""))}</td>
+      <td><span class="status">{safe(status)}</span></td>
+      <td>{safe(event.get("reason", ""))}</td>
+      <td>
+        <details>
+          <summary>View evidence</summary>
+          <pre>{safe(evidence)}</pre>
+        </details>
+      </td>
+    </tr>
+    """
+
+
+def build_diagnostic_card(item, index):
+    """Create a readable diagnostic assessment."""
+    evidence = item.get("evidence", [])
+    if isinstance(evidence, list):
+        evidence_html = "".join(
+            f"<li>{safe(entry)}</li>" for entry in evidence
+        )
+    else:
+        evidence_html = f"<li>{safe(evidence)}</li>"
+
+    return f"""
+    <article class="diagnostic">
+      <div class="diagnostic-heading">
+        <span class="number">Diagnostic {index}</span>
+        <span class="confidence">
+          Confidence: {safe(item.get("confidence", "Not recorded"))}
+        </span>
+      </div>
+      <h3>{safe(item.get("test", "Unknown test"))}</h3>
+
+      <p><strong>Original locator:</strong>
+        <code>{safe(item.get("failed_locator", ""))}</code>
+      </p>
+      <p><strong>Expected element:</strong>
+        {safe(item.get("expected_tag", "Not recorded"))}
+      </p>
+
+      <h4>Assessment</h4>
+      <p>{safe(item.get("root_cause_assessment", ""))}</p>
+
+      <h4>Evidence</h4>
+      <ul>{evidence_html}</ul>
+
+      <h4>Recommended fix</h4>
+      <p>{safe(item.get("recommended_fix", ""))}</p>
+
+      <details>
+        <summary>Limitations and additional analysis</summary>
+        <p>{safe(item.get("limitations", ""))}</p>
+        <p>{safe(item.get("llm_opinion", ""))}</p>
+      </details>
+    </article>
+    """
+
+
+def generate_html_report(report_dir, output_path=None):
+    """Generate a standalone HTML dashboard from a test report folder."""
+    report_dir = Path(report_dir).resolve()
+
+    events = load_json_file(report_dir / "healing_events.json")
+    diagnostics = load_json_file(report_dir / "diagnostics.json")
+    test_counts = read_test_counts(report_dir)
+
+    status_counts = Counter(
+        normalise_status(event.get("status")) for event in events
+    )
+
+    passed = test_counts["passed"]
+    failed = test_counts["failed"]
+    errors = test_counts["errors"]
+
+    test_cards = ""
+    if passed is not None:
+        test_cards += f"""
+        <div class="metric"><span>Tests passed</span>
+          <strong>{passed}</strong></div>
+        <div class="metric"><span>Tests failed</span>
+          <strong>{failed or 0}</strong></div>
+        <div class="metric"><span>Test errors</span>
+          <strong>{errors or 0}</strong></div>
+        """
+    else:
+        test_cards = """
+        <div class="metric"><span>Test summary</span>
+          <strong>Not found</strong></div>
+        """
+
+    event_rows = "".join(
+        build_event_row(event, index)
+        for index, event in enumerate(events, start=1)
+    )
+
+    if not event_rows:
+        event_rows = """
+        <tr><td colspan="8">No healing events were recorded.</td></tr>
+        """
+
+    diagnostic_cards = "".join(
+        build_diagnostic_card(item, index)
+        for index, item in enumerate(diagnostics, start=1)
+    )
+
+    if not diagnostic_cards:
+        diagnostic_cards = "<p>No diagnostic assessments found.</p>"
+
+    status_cards = "".join(
+        f'<div class="metric"><span>{safe(status)}</span>'
+        f'<strong>{count}</strong></div>'
+        for status, count in sorted(status_counts.items())
+    )
+
+    report_name = safe(report_dir.name)
+
+    document = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Healing UI Test Report</title>
+<style>
+:root {{
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #1e293b;
+  background: #f3f6fb;
+}}
+* {{ box-sizing: border-box; }}
+body {{ margin: 0; }}
+header {{
+  background: #12233f; color: white;
+  padding: 28px max(22px, calc((100% - 1400px) / 2));
+}}
+header h1 {{ margin: 0 0 8px; font-size: 27px; }}
+header p {{ margin: 0; color: #c8d5e8; }}
+main {{ max-width: 1400px; margin: 25px auto; padding: 0 22px 45px; }}
+h2 {{ margin-top: 30px; }}
+.muted {{ color: #64748b; font-size: 14px; }}
+.metrics {{
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 14px; margin: 18px 0;
+}}
+.metric {{
+  background: white; border: 1px solid #e1e8f0; border-radius: 12px;
+  padding: 19px; box-shadow: 0 2px 6px #0f172a08;
+}}
+.metric span {{ display: block; color: #64748b; font-size: 13px; }}
+.metric strong {{ display: block; font-size: 29px; margin-top: 8px; }}
+.panel {{
+  background: white; border: 1px solid #e1e8f0;
+  border-radius: 12px; padding: 18px; margin: 14px 0;
+}}
+.toolbar {{
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+}}
+input, select {{
+  border: 1px solid #cbd5e1; border-radius: 8px;
+  padding: 11px; font: inherit; background: white;
+}}
+input {{ flex: 1; min-width: 220px; }}
+.table-wrap {{ overflow-x: auto; }}
+table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+th, td {{
+  text-align: left; vertical-align: top; padding: 12px;
+  border-bottom: 1px solid #e7edf4; min-width: 100px;
+}}
+th {{ background: #f8fafc; color: #475569; }}
+td:nth-child(2) {{ min-width: 240px; }}
+td:nth-child(7) {{ min-width: 220px; }}
+code {{
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  background: #eef2f7; padding: 3px 5px; border-radius: 4px;
+}}
+details summary {{ cursor: pointer; color: #0f766e; font-weight: 600; }}
+pre {{
+  white-space: pre-wrap; overflow-wrap: anywhere; max-width: 520px;
+  font-size: 12px; background: #f8fafc; padding: 12px;
+  border-radius: 7px;
+}}
+.diagnostic {{
+  background: white; border: 1px solid #e1e8f0; border-radius: 12px;
+  padding: 20px; margin: 14px 0;
+}}
+.diagnostic h3 {{ overflow-wrap: anywhere; font-size: 15px; }}
+.diagnostic h4 {{ margin-bottom: 5px; }}
+.diagnostic p, .diagnostic li {{ line-height: 1.55; overflow-wrap: anywhere; }}
+.diagnostic-heading {{
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+}}
+.number {{ color: #0f766e; font-weight: 700; }}
+.confidence {{ color: #64748b; font-size: 13px; }}
+footer {{ color: #64748b; font-size: 12px; margin-top: 30px; }}
+@media (max-width: 600px) {{
+  header h1 {{ font-size: 22px; }}
+  main {{ padding: 0 12px 30px; }}
+  .panel {{ padding: 12px; }}
+}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Self-Healing UI Test Automation</h1>
+  <p>Readable execution and locator-healing report</p>
+</header>
+<main>
+  <p class="muted">Report folder: <code>{report_name}</code></p>
+
+  <h2>Test execution</h2>
+  <div class="metrics">{test_cards}</div>
+
+  <h2>Healing overview</h2>
+  <div class="metrics">
+    <div class="metric"><span>Total healing events</span>
+      <strong>{len(events)}</strong></div>
+    <div class="metric"><span>Diagnostic assessments</span>
+      <strong>{len(diagnostics)}</strong></div>
+    {status_cards}
+  </div>
+
+  <h2>Diagnostic assessments</h2>
+  <p class="muted">
+    Review the recorded evidence and recommended fixes for each assessment.
+  </p>
+  {diagnostic_cards}
+
+  <h2>Healing event history</h2>
+  <div class="panel">
+    <div class="toolbar">
+      <input id="search" type="search"
+        placeholder="Search tests, locators, reasons, evidence...">
+      <select id="statusFilter">
+        <option value="">All statuses</option>
+        {"".join(f'<option value="{safe(s)}">{safe(s)}</option>' for s in sorted(status_counts))}
+      </select>
+    </div>
+    <p id="resultCount" class="muted"></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Test</th><th>Original locator</th>
+          <th>Suggested locator</th><th>Attempt</th><th>Status</th>
+          <th>Reason</th><th>Evidence</th>
+        </tr></thead>
+        <tbody id="eventRows">{event_rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Generated from the existing JSON and execution log files.
+    This report displays recorded evidence; it does not rerun tests.
+  </footer>
+</main>
+<script>
+const searchBox = document.getElementById("search");
+const statusFilter = document.getElementById("statusFilter");
+const rows = Array.from(document.querySelectorAll("#eventRows tr"));
+const resultCount = document.getElementById("resultCount");
+
+function filterRows() {{
+  const query = searchBox.value.toLowerCase().trim();
+  const status = statusFilter.value;
+  let visible = 0;
+
+  for (const row of rows) {{
+    const matchesSearch = (row.dataset.search || "").includes(query);
+    const matchesStatus = !status || row.dataset.status === status;
+    const show = matchesSearch && matchesStatus;
+    row.hidden = !show;
+    if (show) visible++;
+  }}
+
+  resultCount.textContent = `Showing ${{visible}} of ${{rows.length}} rows`;
+}}
+
+searchBox.addEventListener("input", filterRows);
+statusFilter.addEventListener("change", filterRows);
+filterRows();
+</script>
+</body>
+</html>
+"""
+
+    output_path = Path(output_path) if output_path else report_dir / "report.html"
+    if not output_path.is_absolute():
+        output_path = PROJECT_ROOT / output_path
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(document, encoding="utf-8")
+    return output_path
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate a browser-friendly self-healing test report."
+    )
+    parser.add_argument(
+        "report_dir",
+        nargs="?",
+        default=str(PROJECT_ROOT / "test_reports"),
+        help="A report folder containing healing_events.json and diagnostics.json",
+    )
+    parser.add_argument(
+        "--output",
+        help="Optional output HTML path",
+    )
+    args = parser.parse_args()
+
+    report_dir = Path(args.report_dir)
+
+    if not report_dir.exists():
+        parser.error(f"Report folder does not exist: {report_dir}")
+
+    # Allow the root test_reports folder by choosing its latest report folder.
+    if not (report_dir / "healing_events.json").exists():
+        candidates = [
+            path for path in report_dir.iterdir()
+            if path.is_dir() and (path / "healing_events.json").exists()
+        ]
+        if not candidates:
+            parser.error(
+                f"No healing_events.json found in {report_dir} "
+                "or its immediate subfolders."
+            )
+        report_dir = max(candidates, key=lambda path: path.stat().st_mtime)
+
+    output = generate_html_report(report_dir, args.output)
+    print(f"HTML report created: {output}")
+
+
+if __name__ == "__main__":
+    main()

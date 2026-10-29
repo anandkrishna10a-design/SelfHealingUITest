@@ -1,0 +1,1950 @@
+import json
+
+import os
+
+import re
+
+import secrets
+
+import sqlite3
+
+import subprocess
+
+import sys
+
+import threading
+import time
+
+from pathlib import Path
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from apscheduler.schedulers.background import BackgroundScheduler
+
+from flask import (
+
+    Flask,
+
+    jsonify,
+
+    send_from_directory,
+
+    request,
+
+    session,
+
+    abort,
+
+)
+
+from werkzeug.security import check_password_hash, generate_password_hash
+
+# ---------------------------------------------------------
+
+# APPLICATION CONFIGURATION
+
+# ---------------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+
+DEMO_APP_DIR = PROJECT_ROOT / "demo_app"
+
+REPORTS_ROOT = PROJECT_ROOT / "test_reports"
+
+PROGRESS_FILE = REPORTS_ROOT / ".dashboard_progress.json"
+SCHEDULE_FILE = PROJECT_ROOT / "schedule_settings.json"
+RUN_METADATA_FILE = "run_metadata.json"
+
+DATABASE = PROJECT_ROOT / "smartkart.db"
+
+ADMIN_DATABASE = PROJECT_ROOT / "admin.db"
+
+app = Flask(__name__)
+
+app.secret_key = (
+
+    os.environ.get("FLASK_SECRET_KEY")
+
+    or secrets.token_hex(32)
+
+)
+
+app.config.update(
+
+    SESSION_COOKIE_HTTPONLY=True,
+
+    SESSION_COOKIE_SAMESITE="Lax",
+
+)
+
+# Manually started test process and its output log.
+
+_TEST_LOCK = threading.Lock()
+
+_ACTIVE_TEST_PROCESS = None
+
+_ACTIVE_TEST_LOG = None
+
+_ACTIVE_TEST_LOG_HANDLE = None
+
+# ---------------------------------------------------------
+
+# DATABASE CONNECTIONS
+
+# ---------------------------------------------------------
+
+def get_database_connection():
+
+    connection = sqlite3.connect(DATABASE)
+
+    connection.row_factory = sqlite3.Row
+
+    return connection
+
+def get_admin_database_connection():
+
+    connection = sqlite3.connect(ADMIN_DATABASE)
+
+    connection.row_factory = sqlite3.Row
+
+    return connection
+
+# ---------------------------------------------------------
+
+# SHOPPING USER TABLE SETUP
+
+# ---------------------------------------------------------
+
+def initialize_users_table():
+
+    connection = get_database_connection()
+
+    try:
+
+        connection.execute(
+
+            """
+
+            CREATE TABLE IF NOT EXISTS users (
+
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                username TEXT NOT NULL UNIQUE,
+
+                password_hash TEXT NOT NULL
+
+            )
+
+            """
+
+        )
+
+        existing_user = connection.execute(
+
+            "SELECT id FROM users WHERE username = ?",
+
+            ("testacc",),
+
+        ).fetchone()
+
+        if existing_user is None:
+
+            connection.execute(
+
+                """
+
+                INSERT INTO users (username, password_hash)
+
+                VALUES (?, ?)
+
+                """,
+
+                (
+
+                    "testacc",
+
+                    generate_password_hash("vs12345"),
+
+                ),
+
+            )
+
+        connection.commit()
+
+    finally:
+
+        connection.close()
+
+initialize_users_table()
+
+# ---------------------------------------------------------
+
+# ADMIN AUTHENTICATION HELPERS
+
+# ---------------------------------------------------------
+
+def admin_is_authenticated():
+
+    return session.get("admin_id") is not None
+
+def admin_required_response():
+
+    if not admin_is_authenticated():
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Administrator login required.",
+
+            }
+
+        ), 401
+
+    return None
+
+# ---------------------------------------------------------
+
+# REPORT PARSING HELPERS
+
+# ---------------------------------------------------------
+
+def read_json_file(file_path, default=None):
+
+    if default is None:
+
+        default = []
+
+    try:
+
+        with file_path.open("r", encoding="utf-8") as file:
+
+            return json.load(file)
+
+    except (OSError, json.JSONDecodeError):
+
+        return default
+
+def read_text_file(file_path):
+
+    try:
+
+        return file_path.read_text(
+
+            encoding="utf-8",
+
+            errors="replace",
+
+        )
+
+    except OSError:
+
+        return ""
+
+def extract_summary_count(text, label):
+
+    """
+
+    Extract a count from healing_summary.txt.
+
+    Example: 'Passed tests detected: 42'.
+
+    """
+
+    pattern = rf"^\s*{re.escape(label)}\s*:\s*(\d+)\s*$"
+
+    match = re.search(
+
+        pattern,
+
+        text,
+
+        re.IGNORECASE | re.MULTILINE,
+
+    )
+
+    return int(match.group(1)) if match else None
+
+def extract_pytest_counts(text):
+
+    """
+
+    Fallback parser for pytest terminal summaries.
+
+    """
+
+    counts = {
+
+        "passed": 0,
+
+        "failed": 0,
+
+        "errors": 0,
+
+        "skipped": 0,
+
+    }
+
+    for line in reversed(text.splitlines()):
+
+        if not re.search(
+
+            r"\b(in\s+\d+(?:\.\d+)?s|no tests ran)\b",
+
+            line,
+
+            re.IGNORECASE,
+
+        ):
+
+            continue
+
+        for key in counts:
+
+            match = re.search(
+
+                rf"\b(\d+)\s+{key}\b",
+
+                line,
+
+                re.IGNORECASE,
+
+            )
+
+            if match:
+
+                counts[key] = int(match.group(1))
+
+        if any(
+
+            re.search(
+
+                rf"\b\d+\s+{key}\b",
+
+                line,
+
+                re.IGNORECASE,
+
+            )
+
+            for key in counts
+
+        ):
+
+            return counts
+
+    return counts
+
+def read_healing_events(report_dir):
+
+    events = read_json_file(
+
+        report_dir / "healing_events.json",
+
+        default=[],
+
+    )
+
+    if not isinstance(events, list):
+
+        return []
+
+    return [
+
+        event for event in events
+
+        if isinstance(event, dict)
+
+    ]
+
+def get_healing_counts(events):
+
+    statuses = {
+
+        "accepted": 0,
+
+        "rejected": 0,
+
+        "failed": 0,
+
+        "other": 0,
+
+    }
+
+    suggestion_count = 0
+
+    for event in events:
+
+        status = str(
+
+            event.get("status", "")
+
+        ).strip().lower()
+
+        if status == "accepted":
+
+            statuses["accepted"] += 1
+
+        elif status in {"rejected", "invalid"}:
+
+            statuses["rejected"] += 1
+
+        elif status in {"failed", "error"}:
+
+            statuses["failed"] += 1
+
+        else:
+
+            statuses["other"] += 1
+
+        suggestion = event.get("ollama_suggestion")
+
+        if isinstance(suggestion, str) and suggestion.strip():
+
+            suggestion_count += 1
+
+    return {
+
+        "total_events": len(events),
+
+        "suggestions": suggestion_count,
+
+        "accepted": statuses["accepted"],
+
+        "rejected": statuses["rejected"],
+
+        "failed_operations": statuses["failed"],
+
+        "other": statuses["other"],
+
+    }
+
+def read_schedule_settings():
+    """Read persisted daily schedule settings, with safe defaults."""
+    settings = read_json_file(SCHEDULE_FILE, default={})
+    if not isinstance(settings, dict):
+        settings = {}
+    selected_time = str(settings.get("time", "11:45"))
+    if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", selected_time):
+        selected_time = "11:45"
+    return {
+        "enabled": bool(settings.get("enabled", True)),
+        "time": selected_time,
+        "timezone": "Asia/Kolkata",
+    }
+
+
+def update_daily_schedule(enabled=None, selected_time=None):
+    """Persist settings and synchronise the APScheduler cron job."""
+    current = read_schedule_settings()
+    if enabled is None:
+        enabled = current["enabled"]
+    if selected_time is None:
+        selected_time = current["time"]
+    if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", selected_time):
+        raise ValueError("Choose a valid time in HH:MM 24-hour format.")
+
+    settings = {"enabled": bool(enabled), "time": selected_time, "timezone": "Asia/Kolkata"}
+    SCHEDULE_FILE.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+
+    if scheduler.running:
+        existing = scheduler.get_job("daily-test-run")
+        if existing:
+            scheduler.remove_job("daily-test-run")
+        if settings["enabled"]:
+            hour, minute = map(int, selected_time.split(":"))
+            scheduler.add_job(
+                scheduled_test_run,
+                "cron",
+                hour=hour,
+                minute=minute,
+                timezone=ZoneInfo("Asia/Kolkata"),
+                id="daily-test-run",
+                replace_existing=True,
+                coalesce=True,
+                max_instances=1,
+            )
+    return settings
+
+
+def write_run_metadata_later(started_at, reason, category):
+    """Attach the reason/category to the report folder created by conftest."""
+    def worker():
+        deadline = time.time() + 45
+        while time.time() < deadline:
+            for report_dir in get_report_directories():
+                try:
+                    created = datetime.strptime(report_dir.name, "%Y-%m-%d_%H-%M-%S_%f")
+                except ValueError:
+                    continue
+                if created >= started_at:
+                    metadata_path = report_dir / RUN_METADATA_FILE
+                    metadata_path.write_text(json.dumps({
+                        "reason": reason,
+                        "category": category,
+                        "trigger": "scheduled" if reason.lower().startswith("scheduled daily") else "manual",
+                        "started_at": started_at.isoformat(timespec="seconds"),
+                    }, indent=2), encoding="utf-8")
+                    app.logger.info("Saved run metadata for %s", report_dir.name)
+                    return
+            time.sleep(0.25)
+        app.logger.warning("Could not find a report folder for run started at %s; reason/category metadata was not attached.", started_at.isoformat())
+    threading.Thread(target=worker, daemon=True).start()
+
+
+def launch_test_process(reason, category="all"):
+    global _ACTIVE_TEST_PROCESS, _ACTIVE_TEST_LOG, _ACTIVE_TEST_LOG_HANDLE
+    REPORTS_ROOT.mkdir(parents=True, exist_ok=True)
+    with _TEST_LOCK:
+        if _ACTIVE_TEST_PROCESS is not None and _ACTIVE_TEST_PROCESS.poll() is None:
+            return {"success": False, "running": True, "message": "A test run is already in progress.", "pid": _ACTIVE_TEST_PROCESS.pid}, 409
+        close_active_log_handle()
+        started_at = datetime.now()
+        runner_log = REPORTS_ROOT / ("dashboard_runner_" + started_at.strftime("%Y%m%d_%H%M%S_%f") + ".log")
+        test_paths = {
+            "all": ["tests"],
+            "login": ["tests/test_login.py", "tests/test_login_extended.py"],
+            "products": ["tests/test_products.py", "tests/test_products_extended.py"],
+            "cart": ["tests/test_cart.py"],
+            "healing-validation": ["tests/test_healing_validation.py", "tests/test_report_generator.py"],
+            "ai-self-healing": ["tests/test_real_ollama_healing.py", "tests/test_self_healing_click.py", "tests/test_self_healing_inputs.py"],
+        }
+        if category not in test_paths:
+            return {"success": False, "message": "Unknown test category."}, 400
+        try:
+            write_initial_progress()
+            output = runner_log.open("w", encoding="utf-8")
+            output.write(f"Run reason: {reason}\nTest category: {category}\nStarted: {started_at.isoformat()}\n\n")
+            output.flush()
+            environment = os.environ.copy()
+            environment["SELF_HEALING_PROGRESS_FILE"] = str(PROGRESS_FILE)
+            environment["SELF_HEALING_RUN_REASON"] = reason
+            environment["SELF_HEALING_TEST_CATEGORY"] = category
+            command = [sys.executable, "-m", "pytest", "-p", "healing.dashboard_progress_plugin", *test_paths[category]]
+            process = subprocess.Popen(command, cwd=str(PROJECT_ROOT), stdout=output, stderr=subprocess.STDOUT, env=environment, shell=False)
+            _ACTIVE_TEST_PROCESS = process
+            _ACTIVE_TEST_LOG = runner_log.name
+            _ACTIVE_TEST_LOG_HANDLE = output
+            write_run_metadata_later(started_at, reason, category)
+        except (OSError, ValueError):
+            app.logger.exception("Could not start the pytest process.")
+            try:
+                output.close()
+            except Exception:
+                pass
+            return {"success": False, "message": "Could not start the test suite. Check the Flask console."}, 500
+    return {"success": True, "running": True, "pid": process.pid, "message": "Test execution started.", "runner_log": runner_log.name, "progress_url": "/admin/api/run/status"}, 202
+
+
+def scheduled_test_run():
+    settings = read_schedule_settings()
+    if settings["enabled"]:
+        hour, minute = map(int, settings["time"].split(":"))
+        display_time = datetime.strptime(settings["time"], "%H:%M").strftime("%I:%M %p").lstrip("0")
+        launch_test_process(f"Scheduled daily automatic run at {display_time} IST", "all")
+
+
+def get_run_summary(report_dir):
+
+    """
+
+    Read the generated summary first, then fall back to
+
+    execution.log if the summary is unavailable.
+
+    """
+
+    summary_text = read_text_file(
+
+        report_dir / "healing_summary.txt"
+
+    )
+
+    passed = extract_summary_count(
+
+        summary_text,
+
+        "Passed tests detected",
+
+    )
+
+    failed = extract_summary_count(
+
+        summary_text,
+
+        "Failed tests detected",
+
+    )
+
+    errors = extract_summary_count(
+
+        summary_text,
+
+        "Test errors detected",
+
+    )
+
+    if passed is None or failed is None or errors is None:
+
+        log_text = read_text_file(
+
+            report_dir / "execution.log"
+
+        )
+
+        fallback = extract_pytest_counts(log_text)
+
+        if passed is None:
+
+            passed = fallback["passed"]
+
+        if failed is None:
+
+            failed = fallback["failed"]
+
+        if errors is None:
+
+            errors = fallback["errors"]
+
+    passed = passed or 0
+
+    failed = failed or 0
+
+    errors = errors or 0
+
+    metadata = read_json_file(report_dir / RUN_METADATA_FILE, default={})
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    # Older runs have no metadata file; identify them explicitly in the UI.
+    reason = str(metadata.get("reason", "")).strip() or "Legacy run (reason not recorded)"
+    category = str(metadata.get("category", "")).strip() or "all"
+
+    events = read_healing_events(report_dir)
+
+    healing = get_healing_counts(events)
+
+    total = passed + failed + errors
+
+    if failed > 0 or errors > 0:
+
+        status = "Failed"
+
+    elif total > 0:
+
+        status = "Passed"
+
+    elif (report_dir / "execution.log").exists():
+
+        status = "No results"
+
+    else:
+
+        status = "Incomplete"
+
+    return {
+
+        "run": report_dir.name,
+
+        "date": report_dir.name,
+
+        "reason": reason,
+
+        "category": category,
+
+        "trigger": metadata.get("trigger", "legacy"),
+
+        "total": total,
+
+        "passed": passed,
+
+        "failed": failed,
+
+        "errors": errors,
+
+        "status": status,
+
+        "healing": healing["suggestions"],
+
+        "suggestions": healing["suggestions"],
+
+        "accepted": healing["accepted"],
+
+        "rejected": healing["rejected"],
+
+        "failed_healing": healing["failed_operations"],
+
+        "total_events": healing["total_events"],
+
+        "report": (
+
+            f"/admin/reports/{report_dir.name}/report.html"
+
+        ),
+
+        "report_url": (
+
+            f"/admin/reports/{report_dir.name}/report.html"
+
+        ),
+
+        "summary_url": (
+
+            f"/admin/reports/{report_dir.name}/healing_summary.txt"
+
+        ),
+
+        "log_url": (
+
+            f"/admin/reports/{report_dir.name}/execution.log"
+
+        ),
+
+    }
+
+def get_report_directories():
+
+    if not REPORTS_ROOT.is_dir():
+
+        return []
+
+    directories = [
+
+        item
+
+        for item in REPORTS_ROOT.iterdir()
+
+        if item.is_dir()
+
+        and re.fullmatch(r"\d{4}-\d{2}-\d{2}_.+", item.name)
+
+    ]
+
+    return sorted(
+
+        directories,
+
+        key=lambda item: item.name,
+
+        reverse=True,
+
+    )
+
+def get_all_runs():
+
+    return [
+
+        get_run_summary(report_dir)
+
+        for report_dir in get_report_directories()
+
+    ]
+
+# ---------------------------------------------------------
+
+# TEST PROCESS AND PROGRESS HELPERS
+
+# ---------------------------------------------------------
+
+def write_initial_progress():
+
+    """
+
+    Reset progress before launching a new pytest process so
+
+    the dashboard cannot display values from the previous run.
+
+    """
+
+    REPORTS_ROOT.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+
+        "status": "starting",
+
+        "total": 0,
+
+        "completed": 0,
+
+        "remaining": 0,
+
+        "passed": 0,
+
+        "failed": 0,
+
+        "errors": 0,
+
+        "skipped": 0,
+
+        "percent": 0,
+
+        "current_test": None,
+
+        "exit_code": None,
+
+    }
+
+    temporary_file = PROGRESS_FILE.with_suffix(".tmp")
+
+    temporary_file.write_text(
+
+        json.dumps(payload, indent=2),
+
+        encoding="utf-8",
+
+    )
+
+    temporary_file.replace(PROGRESS_FILE)
+
+def read_live_progress():
+
+    """
+
+    Read the progress JSON written by
+
+    healing.dashboard_progress_plugin.
+
+    """
+
+    progress = read_json_file(
+
+        PROGRESS_FILE,
+
+        default={},
+
+    )
+
+    if not isinstance(progress, dict):
+
+        progress = {}
+
+    defaults = {
+
+        "status": "starting",
+
+        "total": 0,
+
+        "completed": 0,
+
+        "remaining": 0,
+
+        "passed": 0,
+
+        "failed": 0,
+
+        "errors": 0,
+
+        "skipped": 0,
+
+        "percent": 0,
+
+        "current_test": None,
+
+        "exit_code": None,
+
+    }
+
+    for key, value in defaults.items():
+
+        progress.setdefault(key, value)
+
+    return progress
+
+def close_active_log_handle():
+
+    global _ACTIVE_TEST_LOG_HANDLE
+
+    if _ACTIVE_TEST_LOG_HANDLE is not None:
+
+        try:
+
+            _ACTIVE_TEST_LOG_HANDLE.flush()
+
+            _ACTIVE_TEST_LOG_HANDLE.close()
+
+        except OSError:
+
+            app.logger.exception(
+
+                "Could not close the test runner log."
+
+            )
+
+        finally:
+
+            _ACTIVE_TEST_LOG_HANDLE = None
+
+def get_active_test_status():
+
+    """
+
+    Check the real pytest process and close its output file
+
+    once execution has finished.
+
+    """
+
+    global _ACTIVE_TEST_PROCESS
+
+    with _TEST_LOCK:
+
+        process = _ACTIVE_TEST_PROCESS
+
+        if process is None:
+
+            return {
+
+                "running": False,
+
+                "pid": None,
+
+            }
+
+        return_code = process.poll()
+
+        running = return_code is None
+
+        if not running:
+
+            close_active_log_handle()
+
+        return {
+
+            "running": running,
+
+            "pid": process.pid if running else None,
+
+        }
+
+# ---------------------------------------------------------
+
+# PAGE ROUTES - EXISTING SHOPPING APPLICATION
+
+# ---------------------------------------------------------
+
+@app.route("/")
+
+def home():
+
+    return send_from_directory(
+
+        str(DEMO_APP_DIR),
+
+        "index.html",
+
+    )
+
+@app.route("/index.html")
+
+def index_page():
+
+    return send_from_directory(
+
+        str(DEMO_APP_DIR),
+
+        "index.html",
+
+    )
+
+@app.route("/signup.html")
+
+def signup_page():
+
+    return send_from_directory(
+
+        str(DEMO_APP_DIR),
+
+        "signup.html",
+
+    )
+
+@app.route("/products.html")
+
+def products_page():
+
+    return send_from_directory(
+
+        str(DEMO_APP_DIR),
+
+        "products.html",
+
+    )
+
+@app.route("/cart.html")
+
+def cart_page():
+
+    return send_from_directory(
+
+        str(DEMO_APP_DIR),
+
+        "cart.html",
+
+    )
+
+@app.route("/cart")
+
+def cart_page_short():
+
+    return send_from_directory(
+
+        str(DEMO_APP_DIR),
+
+        "cart.html",
+
+    )
+
+# ---------------------------------------------------------
+
+# ADMIN PAGE
+
+# ---------------------------------------------------------
+
+@app.route("/admin")
+@app.route("/admin.html")
+def admin_page():
+    return send_from_directory(str(DEMO_APP_DIR), "admin.html")
+
+@app.route("/admin/execute")
+def admin_execute_page():
+    if not admin_is_authenticated():
+        from flask import redirect
+        return redirect("/admin")
+    return send_from_directory(str(DEMO_APP_DIR), "admin_execute.html")
+
+@app.route("/admin/schedule")
+def admin_schedule_page():
+    if not admin_is_authenticated():
+        from flask import redirect
+        return redirect("/admin")
+    return send_from_directory(str(DEMO_APP_DIR), "admin_schedule.html")
+
+@app.route("/admin/summary")
+def admin_summary_page():
+    if not admin_is_authenticated():
+        from flask import redirect
+        return redirect("/admin")
+    return send_from_directory(str(DEMO_APP_DIR), "admin_summary.html")
+
+@app.route("/admin/api/ai-summary", methods=["POST"])
+def admin_ai_summary():
+    authentication_error = admin_required_response()
+    if authentication_error:
+        return authentication_error
+    runs = get_all_runs()
+    recent = runs[:15]
+    if not recent:
+        return jsonify({"success": True, "summary": "No saved test runs are available yet. Run tests before generating an AI summary."})
+    compact = [{
+        "run": r.get("run"), "date": r.get("date"), "category": r.get("category"),
+        "status": r.get("status"), "total": r.get("total"), "passed": r.get("passed"),
+        "failed": r.get("failed"), "errors": r.get("errors"), "reason": r.get("reason"),
+        "healing_suggestions": r.get("healing"), "accepted": r.get("accepted"),
+        "rejected": r.get("rejected"),
+    } for r in recent]
+    prompt = (
+        "You are analyzing a local UI test automation execution history. Use only the JSON evidence below. "
+        "Do not invent results or claim a root cause not supported by the data. Give a concise report with: "
+        "overall trend, failures/errors to investigate, category observations, healing activity, and next actions. "
+        "Mention limitations if there are too few runs. JSON data:\n" + json.dumps(compact, ensure_ascii=False)
+    )
+    try:
+        from healing.ollama_client import ask_ollama
+        summary = ask_ollama(prompt)
+        if not summary or str(summary).startswith("ERROR:"):
+            return jsonify({"success": False, "message": str(summary or "Ollama returned an empty response.")}), 503
+        return jsonify({"success": True, "summary": str(summary)})
+    except Exception as error:
+        app.logger.exception("Could not generate AI execution summary")
+        return jsonify({"success": False, "message": f"Could not generate AI summary: {error}"}), 503
+# IMAGE ROUTE
+
+# ---------------------------------------------------------
+
+@app.route("/images/<path:filename>")
+
+def product_images(filename):
+
+    return send_from_directory(
+
+        str(DEMO_APP_DIR / "images"),
+
+        filename,
+
+    )
+
+# ---------------------------------------------------------
+
+# PRODUCTS API - EXISTING SHOPPING APPLICATION
+
+# ---------------------------------------------------------
+
+@app.route("/api/products")
+
+def get_products():
+
+    connection = get_database_connection()
+
+    try:
+
+        products = connection.execute(
+
+            """
+
+            SELECT
+
+                id,
+
+                name,
+
+                category,
+
+                price,
+
+                description,
+
+                image,
+
+                stock
+
+            FROM products
+
+            ORDER BY id
+
+            """
+
+        ).fetchall()
+
+        product_list = []
+
+        for product in products:
+
+            product_list.append(
+
+                {
+
+                    "id": product["id"],
+
+                    "name": product["name"],
+
+                    "category": product["category"],
+
+                    "price": product["price"],
+
+                    "description": product["description"],
+
+                    "image": product["image"],
+
+                    "stock": product["stock"],
+
+                }
+
+            )
+
+        return jsonify(product_list)
+
+    finally:
+
+        connection.close()
+
+# ---------------------------------------------------------
+
+# SIGN UP API - EXISTING SHOPPING APPLICATION
+
+# ---------------------------------------------------------
+
+@app.route("/api/signup", methods=["POST"])
+
+def signup():
+
+    data = request.get_json(silent=True)
+
+    if not data:
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Invalid request",
+
+            }
+
+        ), 400
+
+    username = (data.get("username") or "").strip()
+
+    password = data.get("password") or ""
+
+    if not username or not password:
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Username and password are required",
+
+            }
+
+        ), 400
+
+    if len(username) < 3:
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Username must be at least 3 characters",
+
+            }
+
+        ), 400
+
+    if len(password) < 6:
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Password must be at least 6 characters",
+
+            }
+
+        ), 400
+
+    connection = get_database_connection()
+
+    try:
+
+        existing_user = connection.execute(
+
+            "SELECT id FROM users WHERE username = ?",
+
+            (username,),
+
+        ).fetchone()
+
+        if existing_user:
+
+            return jsonify(
+
+                {
+
+                    "success": False,
+
+                    "message": "Username already exists",
+
+                }
+
+            ), 409
+
+        password_hash = generate_password_hash(password)
+
+        connection.execute(
+
+            """
+
+            INSERT INTO users (username, password_hash)
+
+            VALUES (?, ?)
+
+            """,
+
+            (username, password_hash),
+
+        )
+
+        connection.commit()
+
+        return jsonify(
+
+            {
+
+                "success": True,
+
+                "message": "Account created successfully",
+
+            }
+
+        ), 201
+
+    finally:
+
+        connection.close()
+
+# ---------------------------------------------------------
+
+# LOGIN API - EXISTING SHOPPING APPLICATION
+
+# ---------------------------------------------------------
+
+@app.route("/api/login", methods=["POST"])
+
+def login():
+
+    data = request.get_json(silent=True)
+
+    if not data:
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Invalid request",
+
+            }
+
+        ), 400
+
+    username = (data.get("username") or "").strip()
+
+    password = data.get("password") or ""
+
+    connection = get_database_connection()
+
+    try:
+
+        user = connection.execute(
+
+            """
+
+            SELECT id, username, password_hash
+
+            FROM users
+
+            WHERE username = ?
+
+            """,
+
+            (username,),
+
+        ).fetchone()
+
+    finally:
+
+        connection.close()
+
+    if user and check_password_hash(
+
+        user["password_hash"],
+
+        password,
+
+    ):
+
+        return jsonify(
+
+            {
+
+                "success": True,
+
+                "username": user["username"],
+
+            }
+
+        )
+
+    return jsonify(
+
+        {
+
+            "success": False,
+
+            "message": "Invalid username or password",
+
+        }
+
+    ), 401
+
+# ---------------------------------------------------------
+
+# ADMIN LOGIN API - SEPARATE admin.db
+
+# ---------------------------------------------------------
+
+@app.route("/admin/login", methods=["POST"])
+
+def admin_login():
+
+    data = request.get_json(silent=True)
+
+    if not data:
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Invalid request",
+
+            }
+
+        ), 400
+
+    username = (data.get("username") or "").strip()
+
+    password = data.get("password") or ""
+
+    if not username or not password:
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Admin username and password are required.",
+
+            }
+
+        ), 400
+
+    if not ADMIN_DATABASE.is_file():
+
+        app.logger.error(
+
+            "Admin database was not found: %s",
+
+            ADMIN_DATABASE,
+
+        )
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Admin database is not initialized.",
+
+            }
+
+        ), 503
+
+    connection = get_admin_database_connection()
+
+    try:
+
+        admin = connection.execute(
+
+            """
+
+            SELECT id, username, password_hash
+
+            FROM admins
+
+            WHERE username = ?
+
+            """,
+
+            (username,),
+
+        ).fetchone()
+
+    except sqlite3.OperationalError:
+
+        app.logger.exception(
+
+            "Admin database schema is unavailable."
+
+        )
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Admin database is not initialized correctly.",
+
+            }
+
+        ), 503
+
+    finally:
+
+        connection.close()
+
+    if not admin or not check_password_hash(
+
+        admin["password_hash"],
+
+        password,
+
+    ):
+
+        return jsonify(
+
+            {
+
+                "success": False,
+
+                "message": "Invalid admin username or password.",
+
+            }
+
+        ), 401
+
+    session.clear()
+
+    session["admin_id"] = admin["id"]
+
+    session["admin_username"] = admin["username"]
+
+    return jsonify(
+
+        {
+
+            "success": True,
+
+            "message": "Admin login successful.",
+
+            "username": admin["username"],
+
+        }
+
+    )
+
+# ---------------------------------------------------------
+
+# ADMIN LOGOUT API
+
+# ---------------------------------------------------------
+
+@app.route("/admin/logout", methods=["POST"])
+
+def admin_logout():
+
+    session.clear()
+
+    return jsonify(
+
+        {
+
+            "success": True,
+
+            "message": "Admin logged out successfully.",
+
+        }
+
+    )
+
+# ---------------------------------------------------------
+
+# ADMIN DASHBOARD SUMMARY API
+
+# ---------------------------------------------------------
+
+@app.route("/admin/api/summary", methods=["GET"])
+
+def admin_dashboard_summary():
+
+    authentication_error = admin_required_response()
+
+    if authentication_error:
+
+        return authentication_error
+
+    runs = get_all_runs()
+
+    latest_run = runs[0] if runs else None
+
+    if latest_run:
+
+        total = latest_run["total"]
+
+        passed = latest_run["passed"]
+
+        failed = latest_run["failed"]
+
+        errors = latest_run["errors"]
+
+        healing = latest_run["healing"]
+
+        accepted = latest_run["accepted"]
+
+        rejected = latest_run["rejected"]
+
+        failed_healing = latest_run["failed_healing"]
+
+        total_events = latest_run["total_events"]
+
+    else:
+
+        total = passed = failed = errors = 0
+
+        healing = accepted = rejected = failed_healing = total_events = 0
+
+    active_status = get_active_test_status()
+
+    return jsonify(
+
+        {
+
+            "success": True,
+
+            "total": total,
+
+            "passed": passed,
+
+            "failed": failed,
+
+            "errors": errors,
+
+            "healing": healing,
+
+            "suggestions": healing,
+
+            "accepted": accepted,
+
+            "rejected": rejected,
+
+            "failed_healing": failed_healing,
+
+            "total_events": total_events,
+
+            "total_tests": total,
+
+            "passed_tests": passed,
+
+            "failed_tests": failed,
+
+            "test_errors": errors,
+
+            "healing_suggestions": healing,
+
+            "latest_run": latest_run,
+
+            "is_running": active_status["running"],
+
+            "active_process_id": active_status["pid"],
+
+            "run_count": len(runs),
+
+        }
+
+    )
+
+# ---------------------------------------------------------
+
+# ADMIN EXECUTION HISTORY API
+
+# ---------------------------------------------------------
+
+@app.route("/admin/api/runs", methods=["GET"])
+
+def admin_dashboard_runs():
+
+    authentication_error = admin_required_response()
+
+    if authentication_error:
+
+        return authentication_error
+
+    runs = get_all_runs()
+
+    return jsonify(
+
+        {
+
+            "success": True,
+
+            "runs": runs,
+
+            "history": runs,
+
+            "count": len(runs),
+
+        }
+
+    )
+
+# ---------------------------------------------------------
+
+# ADMIN REPORT FILES
+
+# ---------------------------------------------------------
+
+@app.route("/admin/reports/<run_id>/<path:filename>")
+
+def admin_report_file(run_id, filename):
+
+    authentication_error = admin_required_response()
+
+    if authentication_error:
+
+        return authentication_error
+
+    if not re.fullmatch(
+
+        r"\d{4}-\d{2}-\d{2}_[A-Za-z0-9_.-]+",
+
+        run_id,
+
+    ):
+
+        abort(404)
+
+    allowed_files = {
+
+        "report.html",
+
+        "healing_summary.txt",
+
+        "execution.log",
+
+        "healing_events.json",
+
+        "diagnostics.json",
+
+        "results.json",
+
+    }
+
+    if filename not in allowed_files:
+
+        abort(404)
+
+    report_dir = (REPORTS_ROOT / run_id).resolve()
+
+    reports_root_resolved = REPORTS_ROOT.resolve()
+
+    if (
+
+        report_dir.parent != reports_root_resolved
+
+        or not report_dir.is_dir()
+
+    ):
+
+        abort(404)
+
+    if not (report_dir / filename).is_file():
+
+        abort(404)
+
+    return send_from_directory(
+
+        str(report_dir),
+
+        filename,
+
+    )
+
+# ---------------------------------------------------------
+
+# ADMIN MANUAL TEST RUN API
+
+# Starts pytest with the live progress plugin enabled.
+
+# conftest.py still creates the timestamped report folder.
+
+# ---------------------------------------------------------
+
+@app.route("/admin/api/run", methods=["POST"])
+def admin_run_tests():
+    authentication_error = admin_required_response()
+    if authentication_error:
+        return authentication_error
+    payload = request.get_json(silent=True) or {}
+    reason = str(payload.get("reason", "")).strip()
+    category = str(payload.get("category", "all")).strip().lower()
+    if not reason:
+        return jsonify({"success": False, "message": "Please provide a reason for this test run."}), 400
+    if len(reason) > 500:
+        return jsonify({"success": False, "message": "Reason must be 500 characters or fewer."}), 400
+    result, status_code = launch_test_process(reason, category)
+    return jsonify(result), status_code
+
+
+# ---------------------------------------------------------
+# DAILY SCHEDULE API
+# ---------------------------------------------------------
+
+@app.route("/admin/api/schedule", methods=["GET", "POST"])
+def admin_schedule():
+    authentication_error = admin_required_response()
+    if authentication_error:
+        return authentication_error
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        enabled = payload.get("enabled", True)
+        if not isinstance(enabled, bool):
+            return jsonify({"success": False, "message": "Enabled must be true or false."}), 400
+        selected_time = str(payload.get("time", "11:45")).strip()
+        try:
+            settings = update_daily_schedule(enabled, selected_time)
+        except (ValueError, OSError) as error:
+            return jsonify({"success": False, "message": str(error)}), 400
+        hour, minute = map(int, settings["time"].split(":"))
+        time_label = datetime.strptime(settings["time"], "%H:%M").strftime("%I:%M %p").lstrip("0") + " IST"
+        job = scheduler.get_job("daily-test-run") if scheduler.running else None
+        return jsonify({
+            "success": True,
+            "enabled": settings["enabled"],
+            "time": settings["time"],
+            "time_label": time_label,
+            "next_run": job.next_run_time.isoformat() if job and job.next_run_time else None,
+            "message": "Daily schedule settings saved.",
+        })
+    settings = read_schedule_settings()
+    job = scheduler.get_job("daily-test-run") if scheduler.running else None
+    time_label = datetime.strptime(settings["time"], "%H:%M").strftime("%I:%M %p").lstrip("0") + " IST"
+    return jsonify({"success": True, **settings, "time_label": time_label, "next_run": job.next_run_time.isoformat() if job and job.next_run_time else None})
+
+
+@app.route("/admin/api/run/status", methods=["GET"])
+
+def admin_test_run_status():
+
+    authentication_error = admin_required_response()
+
+    if authentication_error:
+
+        return authentication_error
+
+    active_status = get_active_test_status()
+
+    with _TEST_LOCK:
+
+        process = _ACTIVE_TEST_PROCESS
+
+        runner_log = _ACTIVE_TEST_LOG
+
+        return_code = None
+
+        if process is not None and process.poll() is not None:
+
+            return_code = process.returncode
+
+    progress = read_live_progress()
+
+    # If pytest has exited, do not leave the UI stuck in a
+
+    # running state even if its final progress write failed.
+
+    if not active_status["running"] and process is not None:
+
+        if return_code == 0:
+
+            progress["status"] = "completed"
+
+            progress["percent"] = 100
+
+        elif return_code is not None:
+
+            progress["status"] = "failed"
+
+        progress["exit_code"] = return_code
+
+    running = active_status["running"]
+
+    if running:
+
+        message = "Tests are running."
+
+    elif progress.get("status") == "completed":
+
+        message = "Test execution completed."
+
+    elif progress.get("status") == "failed":
+
+        message = "Test execution failed."
+
+    else:
+
+        message = "No test run is currently running."
+
+    return jsonify(
+
+        {
+
+            "success": True,
+
+            "running": running,
+
+            "pid": active_status["pid"],
+
+            "return_code": return_code,
+
+            "runner_log": runner_log,
+
+            "message": message,
+
+            "progress": progress,
+
+            # Expose progress fields at the top level too,
+
+            # for simple dashboard JavaScript access.
+
+            "status": progress.get("status"),
+
+            "total": progress.get("total", 0),
+
+            "completed": progress.get("completed", 0),
+
+            "remaining": progress.get("remaining", 0),
+
+            "passed": progress.get("passed", 0),
+
+            "failed": progress.get("failed", 0),
+
+            "errors": progress.get("errors", 0),
+
+            "skipped": progress.get("skipped", 0),
+
+            "percent": progress.get("percent", 0),
+
+            "current_test": progress.get("current_test"),
+
+        }
+
+    )
+
+# ---------------------------------------------------------
+
+# START FLASK SERVER
+
+# ---------------------------------------------------------
+
+scheduler = BackgroundScheduler(timezone=ZoneInfo("Asia/Kolkata"))
+
+
+def start_scheduler():
+    if scheduler.running:
+        return
+    settings = read_schedule_settings()
+    if settings["enabled"]:
+        hour, minute = map(int, settings["time"].split(":"))
+        scheduler.add_job(
+            scheduled_test_run,
+            "cron",
+            hour=hour,
+            minute=minute,
+            timezone=ZoneInfo("Asia/Kolkata"),
+            id="daily-test-run",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+    scheduler.start()
+
+
+if __name__ == "__main__":
+    # Flask debug mode launches a reloader parent and a serving child.
+    # Start the scheduler only in the serving child to avoid duplicate jobs.
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        start_scheduler()
+    app.run(host="127.0.0.1", port=8080, debug=True)

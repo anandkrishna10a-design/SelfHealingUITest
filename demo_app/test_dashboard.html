@@ -1,0 +1,489 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Healing UI Automation</title>
+<style>
+:root{--bg:#0b1020;--side:#0e1629;--panel:#121b30;--panel2:#192844;--line:#2a3b59;--text:#edf3ff;--muted:#9aabc8;--cyan:#4ce0d2;--blue:#718cff;--red:#ff7b86}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Arial,sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.layout{min-height:100vh;display:grid;grid-template-columns:235px minmax(0,1fr)}
+aside{padding:22px 14px;background:var(--side);border-right:1px solid var(--line)}
+.brand{display:flex;gap:11px;align-items:center;padding:5px 8px 28px}
+.logo{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--blue));color:#081326;font-weight:900}
+.brand strong{display:block;font-size:14px}.brand small{color:var(--muted);font-size:11px}
+.label{margin:20px 10px 9px;font-size:10px;letter-spacing:1.5px;color:#7184a5;font-weight:800}
+.nav{width:100%;display:flex;gap:11px;align-items:center;text-align:left;padding:12px;margin:3px 0;background:transparent;border:1px solid transparent;border-radius:9px;color:#b4c3dc;font-size:13px}
+.nav:hover,.nav.active{background:#1b2b48;border-color:#30486c;color:white}.nav.active{box-shadow:inset 3px 0 var(--cyan)}
+main{min-width:0}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px 27px;background:var(--side);border-bottom:1px solid var(--line)}
+header h1{font-size:21px;margin:0}header p{font-size:12px;color:var(--muted);margin:5px 0 0}
+.header-actions{display:flex;align-items:center;gap:12px}
+.content{padding:25px 27px;max-width:1500px;margin:auto}
+.page[hidden]{display:none!important}
+[hidden]{display:none!important}
+.hero,.panel,.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.hero{padding:25px;background:radial-gradient(ellipse at 90% 5%,#526ed52b,transparent 45%),var(--panel)}
+.eyebrow{color:var(--cyan);font-size:10px;letter-spacing:1.5px;font-weight:800}
+h2{font-size:22px;margin:10px 0}
+p{color:var(--muted);font-size:13px;line-height:1.7}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.card{padding:19px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.card h3{font-size:14px}.card p{min-height:42px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.stat{padding:17px}.stat span{display:block;color:var(--muted);font-size:12px}.stat strong{display:block;font-size:25px;margin-top:9px}
+.panel{padding:20px;margin-top:16px;min-width:0}
+.panel h3{font-size:15px;margin:0 0 15px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.admin-user-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.external-link{display:block;text-align:left;padding:12px;margin:3px 0;border:1px solid #30486c;border-radius:9px;color:#b4c3dc;font-size:13px}
+.external-link:hover{background:#1b2b48;color:white;text-decoration:none}
+@media(max-width:620px){.admin-user-grid{grid-template-columns:1fr}}
+.field{margin:13px 0}.field label{display:block;font-size:12px;color:#c1cde2;margin-bottom:7px}
+input:not([type]),input[type=text],input[type=password],input[type=time],textarea{width:100%;padding:11px 12px;border:1px solid #354867;border-radius:8px;background:#0b1426;color:var(--text);outline:none}
+textarea{min-height:85px;resize:vertical}
+input:focus,textarea:focus{border-color:var(--cyan)}
+.btn{padding:10px 14px;border-radius:8px;border:1px solid #3a5277;background:#223656;color:var(--text);font-size:12px;font-weight:700}
+.btn:hover{filter:brightness(1.15)}
+.btn.primary{background:var(--cyan);color:#071526;border-color:var(--cyan)}
+.btn.danger{background:#40202d;border-color:#713342;color:#ffdce0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.run-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.run-grid .btn{text-align:left;padding:14px}
+.message{padding:12px 14px;margin:14px 0;border-radius:8px;background:#192844;border:1px solid #30486c;color:#cbd9f0;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.message.error{border-color:#713342;color:#ffdce0;background:#351d2a}
+.message.success{border-color:#25695f;color:#b6fff2;background:#10312f}
+.progress{height:9px;background:#273653;border-radius:9px;overflow:hidden;margin:12px 0}
+.progress div{height:100%;width:0;background:var(--cyan);transition:width .25s}
+.muted{color:var(--muted);font-size:12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:12px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:#aebfdc;font-weight:700}td{color:#d9e4f7}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+.badge{display:inline-block;padding:4px 7px;border-radius:6px;background:#203c38;color:#a9fff0;font-size:10px}
+.badge.bad{background:#41252e;color:#ffc3ca}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+.switchrow{display:flex;align-items:center;gap:10px;font-size:13px}
+.switchrow input{accent-color:var(--cyan);width:17px;height:17px}
+footer{padding:20px 27px;color:#7184a5;font-size:11px}
+#loginScreen{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 50% 10%,#20385a,transparent 65%),var(--bg)}
+.loginbox{width:min(420px,100%);padding:28px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
+.loginbox h1{font-size:23px;margin:15px 0 4px}
+.loginbox .btn{width:100%;margin-top:8px}
+#loginMessage{display:none}
+@media(max-width:900px){.layout{grid-template-columns:190px minmax(0,1fr)}.cards{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.content{padding:18px}}
+@media(max-width:620px){.layout{display:block}aside{padding:12px;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:4px 8px 12px}.label{display:none}.nav{width:auto;display:inline-flex;padding:10px 9px}.content{padding:13px}header{padding:15px}.header-actions{gap:5px}.header-actions .muted{display:none}.cards,.grid,.run-grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.hero{padding:19px}}
+</style>
+</head>
+<body>
+
+<section id="loginScreen" hidden>
+    <form class="loginbox" id="loginForm">
+        <div class="logo">SH</div>
+        <h1>Privileged Access</h1>
+        <p>Sign in with your administrator credentials to access the automation dashboard.</p>
+        <div class="field"><label for="username">Admin username</label><input id="username" name="username" autocomplete="username" required></div>
+        <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn primary" id="loginButton" type="submit">Sign in</button>
+        <div class="message error" id="loginMessage"></div>
+    </form>
+</section>
+
+<div class="layout" id="appLayout" hidden>
+<aside>
+    <div class="brand"><div class="logo">SH</div><div><strong>Self-Healing UI</strong><small>Automation Studio</small></div></div>
+    <div class="label">WORKSPACE</div>
+    <button class="nav active" data-page="overview">▦ <span>Overview</span></button>
+    <button class="nav" data-page="execution">▶ <span>Test Execution</span></button>
+    <button class="nav" data-page="scheduling">◷ <span>Scheduling</span></button>
+    <button class="nav" data-page="reports">▤ <span>Reports &amp; History</span></button>
+    <button class="nav" data-page="admin-users">♙ <span>Create Admin User</span></button>
+    <div class="label">DASHBOARDS</div>
+    <a class="external-link" href="/admin">↗ &nbsp; Open V1 Dashboard</a>
+    <div class="label">SESSION</div>
+    <button class="nav" id="signOutButton">↪ <span>Sign out</span></button>
+</aside>
+<main>
+    <header>
+        <div><h1 id="pageTitle">Overview</h1><p>Self-Healing UI Test Automation · SmartKart</p></div>
+        <div class="header-actions"><span class="muted" id="signedInUser"></span><button class="btn danger" id="headerSignOut">Sign out</button></div>
+    </header>
+    <div class="content">
+        <section class="page" id="page-overview">
+            <div class="hero"><div class="eyebrow">AUTOMATION WORKSPACE</div><h2>Your test control centre.</h2><p>Run configured tests, schedule daily execution, and review actual test history and generated reports. Each area has its own workspace.</p></div>
+            <div class="stats">
+                <div class="stat"><span>Latest total tests</span><strong id="overviewTotal">—</strong></div>
+                <div class="stat"><span>Passed</span><strong id="overviewPassed">—</strong></div>
+                <div class="stat"><span>Failed</span><strong id="overviewFailed">—</strong></div>
+                <div class="stat"><span>Recorded runs</span><strong id="overviewRuns">—</strong></div>
+            </div>
+            <div class="cards">
+                <article class="card"><div class="eyebrow">01 / EXECUTION</div><h3>Test Execution</h3><p>Run all tests or choose a configured category.</p><button class="btn primary" data-page="execution">Open test execution →</button></article>
+                <article class="card"><div class="eyebrow">02 / SCHEDULING</div><h3>Scheduling</h3><p>Choose a daily run time and save your schedule.</p><button class="btn primary" data-page="scheduling">Open scheduling →</button></article>
+                <article class="card"><div class="eyebrow">03 / REPORTS</div><h3>Reports &amp; History</h3><p>View recorded runs and open their generated reports.</p><button class="btn primary" data-page="reports">Open reports →</button></article>
+            </div>
+            <div id="overviewMessage" class="message" hidden></div>
+        </section>
+
+        <section class="page" id="page-execution" hidden>
+            <div class="hero"><div class="eyebrow">WORKSPACE / TEST EXECUTION</div><h2>Run your UI tests</h2><p>Choose a test group. A reason is required for each run. The dashboard submits tests to the existing pytest runner.</p></div>
+            <div class="panel">
+                <h3>Select a test category</h3>
+                <div class="run-grid">
+                    <button class="btn" data-category="all">▶ &nbsp; Run All Tests</button>
+                    <button class="btn" data-category="login">🔐 &nbsp; Run Login Tests</button>
+                    <button class="btn" data-category="products">▦ &nbsp; Run Product / Search Tests</button>
+                    <button class="btn" data-category="cart">🛒 &nbsp; Run Cart Tests</button>
+                    <button class="btn" data-category="healing-validation">✦ &nbsp; Run Healing Validation Tests</button>
+                    <button class="btn" data-category="ai-self-healing">◈ &nbsp; Run AI / Self-Healing Tests (Ollama)</button>
+                </div>
+                <div class="field"><label for="runReason">Reason for this test run</label><textarea id="runReason" maxlength="500" placeholder="Example: Verify login after a locator change"></textarea></div>
+                <div class="actions"><button class="btn primary" id="startRunButton">Start selected test run</button><button class="btn" id="refreshStatusButton">Refresh status</button></div>
+                <div class="muted" id="selectedCategory" style="margin-top:10px">Selected category: Run All Tests</div>
+                <div class="message" id="runMessage" hidden></div>
+            </div>
+            <div class="panel">
+                <h3>Live execution status</h3>
+                <div id="runStatusText" class="muted">Checking status…</div>
+                <div class="progress"><div id="progressFill"></div></div>
+                <div class="stats">
+                    <div class="stat"><span>Completed</span><strong id="statusCompleted">0</strong></div>
+                    <div class="stat"><span>Passed</span><strong id="statusPassed">0</strong></div>
+                    <div class="stat"><span>Failed</span><strong id="statusFailed">0</strong></div>
+                    <div class="stat"><span>Remaining</span><strong id="statusRemaining">0</strong></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page" id="page-scheduling" hidden>
+            <div class="hero"><div class="eyebrow">WORKSPACE / SCHEDULING</div><h2>Daily test schedule</h2><p>Choose the time when the existing scheduler should launch the daily test suite. The server stores the schedule using its existing settings mechanism.</p></div>
+            <div class="panel">
+                <h3>Schedule configuration</h3>
+                <div class="switchrow"><input type="checkbox" id="scheduleEnabled"><label for="scheduleEnabled">Enable daily automated test run</label></div>
+                <div class="field"><label for="scheduleTime">Daily run time (24-hour clock)</label><input id="scheduleTime" type="time" value="11:45" required></div>
+                <div class="actions"><button class="btn primary" id="saveScheduleButton">Save schedule</button><button class="btn" id="reloadScheduleButton">Reload saved settings</button></div>
+                <div class="message" id="scheduleMessage" hidden></div>
+            </div>
+            <div class="panel"><h3>Current schedule status</h3><p id="scheduleStatus" class="muted">Loading saved schedule…</p><p id="nextRunText" class="muted"></p></div>
+        </section>
+
+        <section class="page" id="page-reports" hidden>
+            <div class="hero"><div class="eyebrow">WORKSPACE / REPORTS</div><h2>Reports &amp; History</h2><p>Execution records and report links are loaded from the application's existing history API.</p></div>
+            <div class="panel">
+                <div class="actions" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Execution history</h3><button class="btn" id="reloadHistoryButton">Refresh history</button></div>
+                <div class="message" id="historyMessage" hidden></div>
+                <div class="table-wrap"><table><thead><tr><th>Run ID</th><th>Date &amp; Time</th><th>Reason</th><th>Category</th><th>Total</th><th>Passed</th><th>Failed</th><th>Reports</th></tr></thead><tbody id="historyRows"><tr><td colspan="7">Loading history…</td></tr></tbody></table></div>
+            </div>
+        </section>
+
+        <section class="page" id="page-admin-users" hidden>
+            <div class="hero"><div class="eyebrow">ADMINISTRATION / ACCESS</div><h2>Create an administrator</h2><p>Create another dashboard administrator. Passwords must be hashed and saved by the server in <code>admin.db</code>; this page never stores credentials locally.</p></div>
+            <div class="panel">
+                <h3>New admin account</h3>
+                <form id="createAdminForm">
+                    <div class="admin-user-grid">
+                        <div class="field"><label for="newAdminUsername">Admin username</label><input id="newAdminUsername" name="username" type="text" minlength="3" maxlength="80" autocomplete="off" required></div>
+                        <div class="field"><label for="newAdminPassword">Temporary password (minimum 8 characters)</label><input id="newAdminPassword" name="password" type="password" minlength="8" autocomplete="new-password" required></div>
+                    </div>
+                    <div class="actions"><button class="btn primary" id="createAdminButton" type="submit">Create admin user</button></div>
+                </form>
+                <div class="message" id="adminUserMessage" hidden></div>
+                <p class="muted">If the server reports that the admin-user API is unavailable, the matching protected endpoint must first be added to <code>app.py</code>.</p>
+            </div>
+        </section>
+    </div>
+    <footer>Self-Healing UI Test Automation · SmartKart</footer>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const $ = id => document.getElementById(id);
+const api = {
+    login:"/admin/login",
+    logout:"/admin/logout",
+    summary:"/admin/api/summary",
+    runs:"/admin/api/runs",
+    run:"/admin/api/run",
+    status:"/admin/api/run/status",
+    schedule:"/admin/api/schedule",
+    adminUsers:"/admin/api/admin-users"
+};
+const titles={overview:"Overview",execution:"Test Execution",scheduling:"Scheduling",reports:"Reports & History","admin-users":"Create Admin User"};
+const categoryLabels={
+    all:"Run All Tests",
+    login:"Run Login Tests",
+    products:"Run Product / Search Tests",
+    cart:"Run Cart Tests",
+    "healing-validation":"Run Healing Validation Tests",
+    "ai-self-healing":"Run AI / Self-Healing Tests (Ollama)"
+};
+let selectedCategory="all";
+let pollingHandle=null;
+let requestBusy=false;
+
+async function request(url,options={}){
+    const response=await fetch(url,{
+        credentials:"same-origin",
+        ...options,
+        headers:{"Content-Type":"application/json",...(options.headers||{})}
+    });
+    let data;
+    try{data=await response.json()}catch{data={message:"The server returned an unreadable response."}}
+    if(response.status===401||response.status===403){
+        showLogin("Your session has expired. Please sign in again.");
+        throw new Error(data.message||"Please sign in again.");
+    }
+    if(!response.ok||data.success===false)throw new Error(data.message||("Request failed ("+response.status+")"));
+    return data;
+}
+
+function message(id,text,type=""){
+    const el=$(id);
+    el.textContent=text;
+    el.className="message"+(type?" "+type:"");
+    el.hidden=false;
+}
+function hideMessage(id){$(id).hidden=true}
+function showLogin(note=""){
+    if(pollingHandle){clearInterval(pollingHandle);pollingHandle=null}
+    $("appLayout").hidden=true;
+    $("loginScreen").hidden=false;
+    $("loginMessage").style.display=note?"block":"none";
+    $("loginMessage").textContent=note;
+    $("password").value="";
+}
+function showApp(username=""){
+    $("loginScreen").hidden=true;
+    $("appLayout").hidden=false;
+    $("signedInUser").textContent=username?"Signed in: "+username:"";
+}
+function showPage(name){
+    if(!titles[name])return;
+    document.querySelectorAll(".page").forEach(el=>el.hidden=el.id!=="page-"+name);
+    document.querySelectorAll(".nav[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page===name));
+    $("pageTitle").textContent=titles[name];
+    if(name==="overview")loadSummary();
+    if(name==="execution")refreshStatus();
+    if(name==="scheduling")loadSchedule();
+    if(name==="reports")loadHistory();
+    if(name==="admin-users")$("newAdminUsername").focus();
+    window.scrollTo({top:0,behavior:"smooth"});
+}
+async function verifySession(){
+    try{
+        const response=await fetch(api.summary,{credentials:"same-origin"});
+        if(response.status===401||response.status===403){showLogin();return}
+        if(!response.ok)throw new Error("Could not verify the administrator session.");
+        showApp("");
+        showPage("overview");
+    }catch(error){
+        showLogin("Could not connect to the server. Ensure python app.py is running, then sign in.");
+    }
+}
+$("loginForm").addEventListener("submit",async event=>{
+    event.preventDefault();
+    const button=$("loginButton");
+    button.disabled=true;button.textContent="Signing in…";
+    $("loginMessage").style.display="none";
+    try{
+        const result=await request(api.login,{method:"POST",body:JSON.stringify({
+            username:$("username").value.trim(),
+            password:$("password").value
+        })});
+        showApp(result.username||$("username").value.trim());
+        $("password").value="";
+        showPage("overview");
+    }catch(error){
+        $("loginMessage").textContent=error.message;
+        $("loginMessage").style.display="block";
+    }finally{
+        button.disabled=false;button.textContent="Sign in";
+    }
+});
+async function signOut(){
+    try{await fetch(api.logout,{method:"POST",credentials:"same-origin"})}finally{
+        showLogin("You have been signed out.");
+    }
+}
+$("signOutButton").addEventListener("click",signOut);
+$("headerSignOut").addEventListener("click",signOut);
+
+document.querySelectorAll("[data-page]").forEach(button=>{
+    button.addEventListener("click",()=>showPage(button.dataset.page));
+});
+
+async function loadSummary(){
+    try{
+        const d=await request(api.summary);
+        $("overviewTotal").textContent=d.total??d.total_tests??0;
+        $("overviewPassed").textContent=d.passed??d.passed_tests??0;
+        $("overviewFailed").textContent=(d.failed??d.failed_tests??0)+(d.errors??d.test_errors??0);
+        $("overviewRuns").textContent=d.run_count??0;
+        hideMessage("overviewMessage");
+    }catch(error){message("overviewMessage",error.message,"error")}
+}
+
+document.querySelectorAll("[data-category]").forEach(button=>{
+    button.addEventListener("click",()=>{
+        selectedCategory=button.dataset.category;
+        $("selectedCategory").textContent="Selected category: "+categoryLabels[selectedCategory];
+        document.querySelectorAll("[data-category]").forEach(b=>b.classList.toggle("primary",b===button));
+    });
+});
+async function startRun(){
+    if(requestBusy)return;
+    const reason=$("runReason").value.trim();
+    if(!reason){message("runMessage","Enter a reason for this test run first.","error");$("runReason").focus();return}
+    requestBusy=true;
+    $("startRunButton").disabled=true;
+    $("startRunButton").textContent="Starting tests…";
+    try{
+        const result=await request(api.run,{method:"POST",body:JSON.stringify({reason,category:selectedCategory})});
+        message("runMessage",result.message||"Test execution started.","success");
+        await refreshStatus();
+        startPolling();
+    }catch(error){message("runMessage",error.message,"error")}
+    finally{$("startRunButton").disabled=false;$("startRunButton").textContent="Start selected test run";requestBusy=false}
+}
+$("startRunButton").addEventListener("click",startRun);
+
+function updateProgress(d){
+    const p=d.progress||d;
+    const completed=Number(p.completed||0),passed=Number(p.passed||0),failed=Number(p.failed||0),remaining=Number(p.remaining||0);
+    const total=Number(p.total||0);
+    let percent=Number(p.percent||0);
+    if(!percent&&total>0)percent=Math.round(completed/total*100);
+    $("progressFill").style.width=Math.max(0,Math.min(100,percent))+"%";
+    $("statusCompleted").textContent=completed;
+    $("statusPassed").textContent=passed;
+    $("statusFailed").textContent=failed+Number(p.errors||0);
+    $("statusRemaining").textContent=remaining;
+    $("runStatusText").textContent=(d.message||"Status updated.")+(total?" · "+percent+"% complete":"");
+    if(d.running)startPolling();
+    else if(p.status==="completed"||p.status==="failed"||d.return_code!==null){
+        if(pollingHandle){clearInterval(pollingHandle);pollingHandle=null}
+        loadSummary();
+        loadHistory();
+    }
+}
+async function refreshStatus(){
+    try{const d=await request(api.status);updateProgress(d)}
+    catch(error){$("runStatusText").textContent=error.message}
+}
+function startPolling(){
+    if(pollingHandle)return;
+    pollingHandle=setInterval(refreshStatus,2500);
+}
+$("refreshStatusButton").addEventListener("click",refreshStatus);
+
+async function loadSchedule(){
+    try{
+        const d=await request(api.schedule);
+        $("scheduleEnabled").checked=Boolean(d.enabled);
+        $("scheduleTime").value=d.time||"11:45";
+        $("scheduleStatus").textContent=d.enabled
+            ?"Daily schedule enabled for "+(d.time_label||d.time||"the saved time")+"."
+            :"Daily schedule is currently disabled.";
+        $("nextRunText").textContent=d.next_run?"Next run: "+d.next_run:"Next run time has not been reported by the scheduler.";
+        hideMessage("scheduleMessage");
+    }catch(error){message("scheduleMessage",error.message,"error")}
+}
+$("saveScheduleButton").addEventListener("click",async()=>{
+    const time=$("scheduleTime").value;
+    if(!time){message("scheduleMessage","Choose a daily run time first.","error");return}
+    $("saveScheduleButton").disabled=true;
+    try{
+        const d=await request(api.schedule,{method:"POST",body:JSON.stringify({
+            enabled:$("scheduleEnabled").checked,time
+        })});
+        message("scheduleMessage",d.message||"Schedule settings saved.","success");
+        await loadSchedule();
+    }catch(error){message("scheduleMessage",error.message,"error")}
+    finally{$("saveScheduleButton").disabled=false}
+});
+$("reloadScheduleButton").addEventListener("click",loadSchedule);
+
+function esc(value){
+    return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function reportLink(url,label){
+    if(!url || typeof url !== "string") return "";
+    return '<a target="_blank" rel="noopener" href="'+esc(url)+'">'+label+'</a>';
+}
+function formatRunDate(run){
+    const raw=run.started_at||run.started||run.timestamp||run.date||run.run||"";
+    // Report folders are named YYYY-MM-DD_HH-MM-SS_microseconds.
+    const match=String(raw).match(/^(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})-(\d{2})/);
+    if(match) return match[1]+" "+match[2]+":"+match[3]+":"+match[4];
+    return raw||"—";
+}
+async function loadHistory(){
+    const body=$("historyRows");
+    body.innerHTML='<tr><td colspan="8">Loading history…</td></tr>';
+    try{
+        const d=await request(api.runs);
+        const runs=d.runs||d.history||[];
+        if(!runs.length){
+            body.innerHTML='<tr><td colspan="8">No recorded test runs yet.</td></tr>';
+            return;
+        }
+        // The API returns newest first. Give the newest run the highest
+        // sequential number; never display a folder name or timestamp as Run ID.
+        body.innerHTML=runs.map((run,index)=>{
+            const started=formatRunDate(run);
+            // The backend sends runs newest-first and exposes the actual
+            // report URLs. Keep the visible Run ID numeric and sequential.
+            const sequentialRunId=String(runs.length-index);
+            const reason=run.reason||run.run_reason||run.description||"—";
+            const category=run.category||"—";
+            const total=run.total??run.total_tests??0;
+            const passed=run.passed??run.passed_tests??0;
+            const failed=(run.failed??run.failed_tests??0)+(run.errors??run.test_errors??0);
+            const reportUrl=run.report_url||run.report||"";
+            const summaryUrl=run.summary_url||"";
+            const logUrl=run.log_url||"";
+            const reports=[
+                reportLink(reportUrl,"View Report"),
+                reportLink(summaryUrl,"Summary"),
+                reportLink(logUrl,"Log")
+            ].filter(Boolean).join(" · ");
+            return '<tr><td>'+esc(sequentialRunId)+'</td><td>'+esc(started)+'</td><td>'+esc(reason)+'</td><td>'+esc(category)+'</td><td>'+esc(total)+'</td><td>'+esc(passed)+'</td><td><span class="badge '+(failed?"bad":"")+'">'+esc(failed)+'</span></td><td>'+(reports||"No report links returned by the server")+'</td></tr>';
+        }).join("");
+        hideMessage("historyMessage");
+    }catch(error){
+        body.innerHTML='<tr><td colspan="8">Unable to load history.</td></tr>';
+        message("historyMessage",error.message,"error");
+    }
+}
+$("reloadHistoryButton").addEventListener("click",loadHistory);
+
+$("createAdminForm").addEventListener("submit",async event=>{
+    event.preventDefault();
+    const username=$("newAdminUsername").value.trim();
+    const password=$("newAdminPassword").value;
+    if(username.length<3){message("adminUserMessage","Username must contain at least 3 characters.","error");return}
+    if(password.length<8){message("adminUserMessage","Password must contain at least 8 characters.","error");return}
+    const button=$("createAdminButton");
+    button.disabled=true;button.textContent="Creating admin…";
+    try{
+        const result=await request(api.adminUsers,{method:"POST",body:JSON.stringify({username,password})});
+        message("adminUserMessage",result.message||"Admin user created successfully.","success");
+        $("createAdminForm").reset();
+    }catch(error){
+        message("adminUserMessage",error.message+ (error.message.includes("404")?" The admin-user API route is not present in the current app.py yet.":""),"error");
+    }finally{button.disabled=false;button.textContent="Create admin user"}
+});
+
+verifySession();
+})();
+</script>
+</body>
+</html>
